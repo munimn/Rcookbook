@@ -1,0 +1,236 @@
+# Intro to the Tidyverse
+
+<https://learn.datacamp.com/courses/introduction-to-the-tidyverse>
+
+At the top of each chapter, you should have a code chunk that loads all packages needed in the chapter (the first two chapters might not require packages, but the rest will).
+```{r}
+## Load all packages used in this chapter
+```
+
+
+## Data wrangling
+We need to use the gapminder data which is in tidyverse. So we need to install the packages gapminder and also dplyr to get on work with it. We can also use the summary() function to see the the rows and columns in the data
+
+```{r}
+library(tidyverse)
+library(gapminder)
+library(dplyr)
+summary(gapminder)
+```
+Filter : 
+We can filter the data like making a subset of the data by using the <span style="color:red">filter() </span>)   function. We need use the <span style="color:red"> %>% </span>) known as pipe operator first to use the filter(). 
+```{r}
+Pakistan <- gapminder %>% filter(country == "Pakistan")
+Pakistan
+```
+We can also arrange the data using the pipe operator first and then using the <span style="color:red"> arrange()</span>) . The function usually arrange it by ascending order but we can use <span style="color:red"> arrange(desc()) </span>) to order it in descending way.
+
+```{r}
+#Ascending order
+Pakistan %>% arrange(pop)
+#descending order
+Pakistan %>% arrange(desc(pop))
+```
+Let's use arrnage and filter together
+
+```{r}
+gapminder %>% filter(country== "Pakistan") %>% arrange(desc(pop))
+```
+
+There is a function <span style="color:red"> mutate()</span>) which helps us to change a variable in the datset or to add a new variable to the dataset. 
+```{r}
+#changing variable
+gapminder %>% mutate(gdpPercap = gdpPercap * 10 )
+#creating new variable
+gapminder %>% mutate(gdp = gdpPercap * pop )
+```
+Now we can combine all the functions we have learned 
+```{r}
+gdp_2007 <- gapminder %>% mutate(gdp = gdpPercap * pop ) %>%filter(year==2007) %>% arrange(desc(gdp))
+gdp_2007
+```
+
+## Data visualization
+Data visualtion is a really great way to observe data and take important decisions . It helps us to see the whole data at a glance and make some assumptions from it. We can create scatterlots of data and for that we need to load a library called <span style="color:red"> ggplot2</span>)
+```{r}
+library(ggplot2)
+```
+We can create a scatterplot like this :--
+
+```{r}
+gapminder_1952<- gapminder %>% filter(year == 1952)
+ggplot(gapminder_1952, aes(x = pop, y = gdpPercap)) +
+  geom_point()
+```
+The aes() function can take 4 attributes. Listed below :--
+
+*  x = The variable for x axis  
+*  y = The variable for x axis  
+*  color = The color of the plots according to one variable.  
+*  size =  The size of the plots according to one variable.  
+
+```{r}
+gapminder_1952<- gapminder %>% filter(year == 1952)
+ggplot(gapminder_1952, aes(x = pop, y = gdpPercap, color=continent)) +
+  geom_point()
+```
+We can also use the <span style="color:red"> scale_x_log10()</span> and <span style="color:red"> scale_y_log10()</span>) to scale the plots.
+```{r}
+gapminder_1952<- gapminder %>% filter(year == 1952)
+ggplot(gapminder_1952, aes(x = pop, y = gdpPercap, color=continent)) +
+  geom_point() + scale_x_log10() +
+  scale_y_log10()
+```
+The plot looks nicer after using the scale.
+
+
+We can use faceting to divide a graph into subplots based on one of its variables, such as the continent. ~ symbol resembles ‘by’. The syntax is <span style="color:red"> facet_wrap (~ variable)</span> 
+
+```{r}
+ gapminder_1952 %>% filter(year == 1952)
+ggplot(gapminder_1952, aes(x = pop, y = lifeExp)) +
+  geom_point() + scale_x_log10() +
+  facet_wrap (~ continent)
+```
+
+## Grouping and summarizing
+We can summarize the data in many ways in R. The summarize verb is the most effecive way to do that. 
+```{r}
+median_overall <-  gapminder %>%
+  summarize(medianLifeExp = median(lifeExp))
+
+median_1957 <- gapminder %>% filter(year == 1957) %>%
+    summarize(medianLifeExp = median(lifeExp))
+```
+We can also summarize multiple variables together like below :--
+
+```{r}
+gapminder %>% filter(year == 1957) %>%
+    summarize(medianLifeExp = median(lifeExp), 
+    maxGdpPercap = max(gdpPercap))
+```
+
+The functions we can use for summarizing are given below :--  
+
+*  <span style="color:red">mean()</span> :-- It gives the average of the variable.   
+*  <span style="color:red">median()</span> :-- It gives the median of the variable.  
+*  <span style="color:red">max()</span> :-- It gives the maximum of the variables.  
+*  <span style="color:red">min()</span> :--  It gives the minimum of the variables.  
+
+We can also group the data according to one or more variables and use it with summarize. We can also use the group by with filter.
+
+```{r}
+#with one variable
+gapminder %>% filter(year==1957) %>%
+  group_by(continent) %>%
+  summarize(medianLifeExp = median(lifeExp),
+            maxGdpPercap = max(gdpPercap))
+#with two variables 
+gapminder %>% 
+  group_by(year,continent) %>%
+  summarize(medianLifeExp = median(lifeExp),
+            maxGdpPercap = max(gdpPercap))
+```
+
+we can visualize summarized data using scatterplots. We can also show different trens in a single plot which makes it easy to understand the data more. 
+**We can use  <span style="color:red">  expand_limits(y = 0)</span> to include 0 in the y axis **
+
+```{r}
+by_year_continent <- gapminder %>% 
+    group_by(continent,year) %>% 
+    summarize(medianLifeExp = median(lifeExp),
+              maxGdpPercap = max(gdpPercap))
+by_year_continent
+```
+```{r}
+ggplot(by_year_continent, aes(x = year, y = maxGdpPercap, color = continent)) + 
+geom_point() +
+expand_limits(y=0)
+```
+
+```{r}
+# Summarize the median GDP and median life expectancy per continent in 2007
+by_continent_2007 <- gapminder %>%
+  filter(year == 2007) %>%
+  group_by(continent) %>%
+  summarize(medianGdpPercap = median(gdpPercap),
+            medianLifeExp = median(lifeExp))
+```
+```{r}
+ggplot(by_continent_2007, aes(x = medianGdpPercap, y = medianLifeExp, color = continent)) +
+  geom_point()
+```
+
+## Types of visualizations.   
+
+*  Scatterplot :-- By using <span style="color:red">  geom_point()</span>  
+*  Line Plot :--  By using <span style="color:red">  geom_line()</span>  
+*  Bar Plot :-- By using <span style="color:red">  geom_col()</span>  
+*  Histogram :-- By using <span style="color:red">  geom_histogram()</span>  
+*  Box Plot :-- By using <span style="color:red">  geom_boxplot()</span>. 
+
+Line Plot :--
+
+```{r}
+ggplot(by_year_continent, aes(x = year, y = maxGdpPercap, color = continent)) +
+  geom_line() + expand_limits(y=0)
+```
+
+Bar Plots :-- 
+```{r}
+by_continent <- gapminder %>%
+  filter(year == 1952) %>%
+  group_by(continent) %>%
+  summarize(medianGdpPercap = median(gdpPercap))
+```
+```{r}
+ggplot(by_continent, aes(x = continent, y = medianGdpPercap)) +
+  geom_col()
+```
+
+Histograms :--  
+**In histograms for aes() we have to use only one argument which is the x value. We can use binwidth and set it to a number geom_histogram(binwidth=0.1) like this. We can also use scale_x_log10() or scale_y_log10() for scaling.
+
+```{r}
+gapminder_1952 <- gapminder %>%
+  filter(year == 1952) %>%
+  mutate(pop_by_mil = pop / 1000000)
+
+# Create a histogram of population (pop_by_mil)
+
+ggplot(gapminder_1952, aes(x = pop_by_mil)) + 
+  geom_histogram(binwidth = 0.1) +
+  scale_x_log10()
+```
+
+
+
+Box Plot :-- 
+```{r}
+ggplot(gapminder_1952, aes(x = continent, y = lifeExp)) + 
+  geom_boxplot()
+```
+
+IN the box plot's box the bold line represents the mean of the data and the line in the bottom represents the 25 percentile and the upper one represents the 75 percentile of the data. We can also see some points in the plot those are the outliers of the data. 
+
+We can add title to any of the the plot by using <span style="color:red">  ggtitle("The title")</span> at last 
+```{r}
+ggplot(gapminder_1952, aes(x = continent, y = gdpPercap)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  ggtitle("Comparing GDP per capita across continents")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+

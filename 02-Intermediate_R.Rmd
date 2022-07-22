@@ -1,0 +1,429 @@
+# Intermediate R
+
+<https://learn.datacamp.com/courses/intermediate-r>
+
+<span style="color:teal;font-weight:bold">(Note: If you do [Intermediate R for Finance](https://learn.datacamp.com/courses/intermediate-r-for-finance) instead, change the title of this bookdown chapter above and change the DataCamp chapter titles below. Whichever version of Intermediate R you do, delete this note)</span>
+
+
+
+
+## Conditionals and Control Flow
+Relational Operators :--
+
+Operator  |  Used for  |
+:---------:  |  :---------:  |
+<  |  Less Than | 
+> | Greater Than  |  
+<=  | less than or equal to  |  
+>=  |  greater than or equal to |  
+==  | Equal To |
+!=  | Not Equal To |
+
+Logical Operators :-- 
+
+Operator  |  Used for  |   
+:---------:  |  :---------:  |
+&  | (AND) passess TRUE If both the conditons are TRUE | 
+|  |   (OR) passes TRUE if anyone of the consitions are TRUE |
+!     | (NOT) Changes the logical value from TRUE to FALSE and otherwise  |  
+
+We can use these relational operators for vectors, matrices and data frames. 
+
+```{r}
+numbers1 <- c(78,90,4,35,65)
+numbers2 <- c(57,65,876,234,45)
+numbers1>50
+numbers2>=numbers1
+```
+Use of logical operators :--
+```{r}
+numbers1 >=50 | numbers1<=100
+lows <- numbers1 >=10 & numbers1 <= 50
+lows
+
+
+#sum of the extremes numbers 
+sum(lows)
+
+#Use of not !
+!lows 
+
+```
+Conditional Statement :-- 
+
+The structure of conditional statement is :--
+
+<span style="color:red"> if(condition) </span> {  
+execute if condition TRUE  
+}<span style="color:red"> else if(condition) </span> {   
+execute when if condition is FALSE and else if condition TRUE  
+}<span style="color:red"> else </span> {  
+execute when if and else if condition is FALSE  
+}
+
+We can also use conditional statements inside a conditional statement. 
+
+```{r}
+Income <- 70000
+if (Income < 40000){
+  if(Income<20000){
+    print("Need Financial Aid")
+  }else{
+    print("Fine enough")
+  }
+} else if (Income< 80000){
+  print("Good standards of living")
+} else {
+  print("rich")
+}
+
+```
+
+
+## Loops
+Loops can come in handy on numerous occasions. While loops are like repeated if statements, the for loop is designed to iterate over all elements in a sequence.  The simple syntax for while loop is :-- 
+<span style="color:red"> while(condition) </span> {  
+execute if condition TRUE  and keep iterating until condition is FALSE
+}
+```{r}
+course_student <- 0 
+while(course_student <= 23){
+  print(paste("Total Stdent in class is now ", course_student))
+  course_student <- course_student+1
+}
+```
+The Break statement:--
+
+The **break** statement breaks out of the while loop whenever a certain condition is made.
+
+The other statement to continue the loop further is **next**
+
+For Loop:
+
+We can use a for loop to print all the elements in a vectors, matrices, lists, data frames.There are two ways create a for loop. Both of them creates same output. But using the second type we can control the indexing of the vector or list.
+
+```{r}
+courses <- list("Discrete Math", "Calculas", "Complex Sequences", "PRobability","Combinatorics")
+#First way to create for loop
+for(c in courses){
+  print(c)
+}
+#Second way of for loop
+for(i in 1:length(courses)){
+  print(courses[[i]])
+}
+```
+Nested for loop :--
+```{r}
+#We are using the matrix we created before in the first chapter
+
+Firstyear_profit <- c(340,890)
+Secondyear_profit <- c(900,234)
+Thirdyear_profit <- c(300,450)
+
+Business_matrix_new <- matrix(c(Firstyear_profit, Secondyear_profit, Thirdyear_profit), byrow=TRUE, nrow = 3)
+for (i in 1:nrow(Business_matrix_new)) {
+  for (j in 1:ncol(Business_matrix_new)) {
+    print(paste("On row", i, "and column", j, "the matrix contains", Business_matrix_new[i,j]))
+  }
+}
+```
+We can also use if and else statement inside the for loop. 
+```{r}
+number <- c(2,3,4,7,9,11,13,17,19,23,29,31)
+for (n in number) {
+  if (n > 15) {
+    print(paste(n, "is greater than 15"))
+  } else {
+    print(paste(n, "is less than 15"))
+  }
+  print(n)
+}
+```
+
+## Functions
+Functions are really important in R do a lot of works . There are a lot of functions in a lot of packages on R. Later in this chapter we will figure out how we can load the packages in R. 
+To consult for the documentation of any function we can use the below commands which will prompt to the R website and show us the documentation and we can also look for the required arguments needed for the functions.
+
+```{r}
+#Seeing the documentation for the sd function 
+help(sd)
+?sd
+#To see the arguments of the sd function
+args(sd)
+```
+A use of the mean function is shown below :--
+```{r}
+value1 <- c(16, 9, 13, 5, NA, 17, 14)
+value2 <- c(17, NA, 5, 16, 8, 13, 14)
+avg_sum <- mean((value1+value2), na.rm = TRUE)
+avg_sum_trimmed <- mean((value1+value2), trim = 0.2, na.rm = TRUE)
+avg_sum_trimmed
+avg_sum
+```
+We can also create our own function using the format :--  
+first_function <- <span style="color:red"> function(arg1,arg2) </span> {  
+body
+}   
+```{r}
+cube_function <- function(arg){
+  cubic <- arg^3
+  return(cubic)
+}
+cube_function(3)
+```
+We can also make functions with no arguments.
+
+```{r}
+function_witoutarg <- function(){
+  print("This is a function without any argument")
+}
+function_witoutarg()
+```
+Function Scoping:
+
+Function scoping implies that variables that are defined inside a function are not accessible outside that function.
+We can also add control flow statement in the function body
+
+```{r}
+linkedin <- c(16, 9, 13, 5, 55, 17, 14)
+facebook <- c(17, 2, 5, 16, 8, 13, 14)
+
+interpret <- function(num_views) {
+  if (num_views > 15) {
+    print("You're popular!")
+    return(num_views)
+
+  } else {
+    print("Try to be more visible!")
+    return(0)
+
+  }
+}
+interpret(linkedin[1])
+
+```
+No we should know how can we load and install R packages:--
+
+We can use **install.packages("")** to install the packages first and then to load packages we can use **library()** Then we can see the packages we have loaded using **search()**
+
+```{r}
+install.packages("tidyverse")
+library(tidyverse)
+
+```
+```{r}
+search()
+```
+
+
+
+## The apply family
+The syntax of lapply is lapply(Vector, function). It takes a vector list and applies a function to each of its members.
+
+```{r}
+digits <- c(16, 9, 13, 5, 55, 17, 14)
+cubics <- lapply(digits, cube_function)
+cubics
+```
+We can also use annonymous function with lapply. 
+```{r}
+square <- lapply(digits, function(x){x*x})
+square
+```
+
+sapply() function does the same job as lapply() function but returns a vector. Like lapply, we can use our own functions for sapply.
+
+```{r}
+sapply(digits, cube_function)
+```
+There is another way of using dunction in data that is vapply. The syntax is :--
+
+<span style="color:red"> vapply(X, FUN, FUN.VALUE, …, USE.NAMES = TRUE) </span>
+Over the elements inside X, the function FUN is applied. The FUN.VALUE argument expects a template for the return argument of this function FUN. USE.NAMES is TRUE by default; in this case vapply() tries to generate a named array, if possible.
+
+```{r}
+normal <- function(x){
+  c(min = min(x),max= max(x), mean= mean(x))
+}
+vapply(digits, normal, numeric(3))
+```
+Summary:
+
+*  lapply():  
+   +  apply function over list or vector  
+   +  output = list. 
+*  sapply():  
+   +  apply function over list or vector 
+   +  try to simplify list to array  
+*  vapply():  
+     +  apply function over list or vector  
+     +  explicitly specify output format.  
+     
+## Utilities
+Mathematical Utilities:  
+
+*  abs(): Calculate the absolute value.   
+*  sum(): Calculate the sum of all the values in a data structure.  
+*  mean(): Calculate the arithmetic mean.  
+*  round(): Round the values to 0 decimal places by default.  
+```{r}
+digits <- c(16, 9, 13, 5, 55, 17, 14)
+sum(round(abs(digits)))
+vec1 <- c(2.3,4.5,1.2,3.6,9.3)
+vec2 <- rev(vec1)
+
+mean_vec_abs <- mean(c(abs(vec1), abs(vec2)))
+mean_vec_abs
+```
+
+
+*  seq(): Generate sequences, by specifying the from, to, and by arguments.   
+*  rep(): Replicate elements of vectors and lists.   
+*  sort(): Sort a vector in ascending order. Works on numerics, but also on character strings and logicals.   
+*  rev(): Reverse the elements in a data structures for which reversal is defined.  
+*  str(): Display the structure of any R object.   
+*  append(): Merge vectors or lists.   
+*  is.(): Check for the class of an R object.  
+*  as.(): Convert an R object from one class to another.  
+*  unlist(): Flatten (possibly embedded) lists to produce a vector.
+
+
+```{r}
+linkedin <- list(16, 9, 13, 5, 2, 17, 14)
+facebook <- list(17, 7, 5, 16, 8, 13, 14)
+
+# Convert linkedin and facebook to a vector: li_vec and fb_vec
+li_vec <- unlist(linkedin)
+fb_vec <- unlist(facebook)
+
+# Append fb_vec to li_vec: social_vec
+social_vec <- append(li_vec, fb_vec)
+
+# Sort social_vec
+sort(social_vec, decreasing = TRUE)
+```
+
+```{r}
+rep_seq <- rep(seq(1, 5, by = 2), times = 7)
+rep_seq
+#sequance from 1 to 100
+seq(1, 100, by = 2)
+```
+Regular Expressions:
+
+Regular expressions are used to clean data to get them ready to work with after we get them. They can be used to see whether a pattern exists inside a character string or a vector of character strings.
+
+[GREP,GREPL]
+
+grepl(), which returns TRUE when a pattern is found in the corresponding character string. grep(), which returns a vector of indices of the character strings that contains the pattern.
+
+```{r}
+emails <- c("john.doe@ivyleague.edu", "education@world.gov", "dalai.lama@peace.org",
+            "invalid.edu", "quant@bigdatacollege.edu", "cookie.monster@sesame.tv")
+edu_has <- c(grepl("edu", x = emails))
+edu_emails <- emails[edu_has]
+edu_emails
+```
+We can use the following to match contents in a string :  
+
+*  we cam ise the caret, ^, and the dollar sign, $ to match the content located in the start and end of a string, respectively.  
+
+*   @, because a valid email must contain an at-sign.  
+*  (.*), which matches any character (.) zero or more times. Both the dot and the asterisk are metacharacters. We can use them to match any character between the at-sign and the “.edu” portion of an email address.    
+
+*  \.edu$, to match the “.edu” part of the email at the end of the string. The \ part escapes the dot: it tells R that you want to use the . as an actual character.  
+
+
+```{r}
+# Use grepl() to match for .edu addresses more robustly
+grepl("@.*\\.edu$", x = emails)
+```
+```{r}
+# Use grep() to match for .edu addresses more robustly, save result to hits
+hits <- grep("@.*\\.edu$", x = emails)
+
+# Subset emails using hits
+emails[hits]
+```
+
+[SUB,GSUB]
+
+**sub()** and **gsub()** can be used to replace a character within a element. sub() only replaces the first match, whereas gsub() replaces all matches.
+```{r}
+sub("@.*\\.edu$", "@datacamp.edu", emails)
+```
+
+Date and Times:
+```{r}
+today_date <- Sys.Date()
+now <-  Sys.time()
+today_date
+```
+
+We can also do date maths like difference of dates 
+```{r}
+Newdate <- as.Date("2001-03-09")
+dif<- today_date-Newdate
+dif
+```
+
+We cam use the following formats to change, create dates using as.Date(). Date increments in Days.
+
+*  %Y: 4-digit year (1982)   
+*  %y: 2-digit year (82)   
+*  %m: 2-digit month (01)   
+*  %d: 2-digit day of the month (13)   
+*  %A: weekday (Wednesday)   
+*  %a: abbreviated weekday (Wed)   
+*  %B: month (January)   
+*  %b: abbreviated month (Jan)  
+
+```{r}
+ #Definition of character strings representing dates
+str1 <- "May 23, '96"
+str2 <- "2012-03-15"
+str3 <- "30/January/2006"
+
+# Convert the strings to dates: date1, date2, date3
+date1 <- as.Date(str1, "%b %d, '%y")
+date2 <- as.Date(str2, "%Y-%m-%d")
+date3 <- as.Date(str3, "%d/%B/%Y")
+
+
+# Convert dates to formatted strings
+format(date1, "%A")
+format(date2, "%d")
+format(date3, "%b %Y")
+```
+We cam use the following formats to change, create time using as.POSIXct(). Time increments in Seconds.  
+
+
+*  %H: hours as a decimal number (00-23)   
+*  %I: hours as a decimal number (01-12)   
+*  %M: minutes as a decimal number   
+*  %S: seconds as a decimal number  
+*  %T: shorthand notation for the typical format %H:%M:%S   
+*  %p: AM/PM indicator
+
+```{r}
+# Definition of character strings representing times
+str1 <- "May 23, '96 hours:23 minutes:01 seconds:45"
+str2 <- "2012-3-12 14:23:08"
+
+# Convert the strings to POSIXct objects: time1, time2
+time1 <- as.POSIXct(str1, format = "%B %d, '%y hours:%H minutes:%M seconds:%S")
+time2 <- as.POSIXct(str2)
+
+# Convert times to formatted strings
+format(time1, "%M")
+format(time2, "%I:%M %p")
+```
+
+
+
+
+
+
+
+

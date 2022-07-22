@@ -1,0 +1,209 @@
+# Introduction to SQL
+
+<https://learn.datacamp.com/courses/introduction-to-sql>
+
+```{r}
+## Load all packages used in this chapter
+library(RSQLite)
+```
+
+For the SQL chapters, you can use the "chinook.db" SQL database (which comes from here: <https://www.sqlitetutorial.net/sqlite-sample-database/>) and load it using the `dbConnect` function (made available via the `RSQLite` package): 
+```{r}
+con <- dbConnect(SQLite(), "chinook.db")
+```
+
+You can then create working examples using SQL code chunks, like this: 
+```{sql connection= "con"}
+select FirstName, LastName FROM customers
+```
+
+
+
+## Selecting columns
+
+A query can either be a request for data results from your database or for action on the data, or for both. A query can give you an answer to a simple question, perform calculations, combine data from different tables, add, change, or delete data from a database.
+In database you can select data from a table using sql keyword SELECT. 
+Using the following code we can select a column from a specific table
+```{sql connection= "con"}
+SELECT FirstName FROM customers
+```
+The "SELECT" and "FROM" is called the Keywords of the sql. We use it in all capital to distinguish it from the coulm or table name
+
+We can also select all the coluns from the table using the "*". 
+
+```{sql connection= "con"}
+SELECT * FROM customers
+```
+If we want to limit the number of results we see we can use the LIMIT keyword
+
+
+```{sql connection= "con"}
+SELECT * FROM customers
+LIMIT 5
+```
+Often the data can have many duplicate values. We can select only the unique values using the DISTINCT keyword.
+```{sql connection= "con"}
+SELECT DISTINCT Company
+FROM customers;
+```
+We can also use the COUNT keyword to count the data of the table 
+```{sql connection= "con"}
+SELECT COUNT (FirstName)
+FROM customers;
+```
+We can also use the DISTINCT and the COUNT together to count the unique number of records
+
+```{sql connection= "con"}
+SELECT COUNT (DISTINCT country)
+FROM customers;
+```
+## Filtering rows
+We can filter rows in sql using the WHERE keyword and we have give a condition for the rows we want to select. 
+The following returns the row of the title track Overdose.
+```{sql connection= "con"}
+SELECT *
+FROM tracks
+WHERE Name='Overdose';
+```
+We can also do query using multiple conditions. 
+```{sql connection= "con"}
+SELECT  Name
+FROM tracks
+WHERE Bytes > 100000000
+AND Milliseconds > 5000000;
+```
+We can also use WHERE and OR together which looks for rows which meets either of the conditions. 
+```{sql connection= "con"}
+SELECT  Name
+FROM tracks
+WHERE Bytes > 300000000
+OR Milliseconds > 4000000;
+```
+We can use the BETWEEN keyword for filtering values within a specified range.
+
+```{sql connection= "con"}
+SELECT  Name
+FROM tracks
+WHERE Bytes BETWEEN 100000000 AND 500000000;
+```
+We can use the IN operator specify multiple valuew for the WHERE keyword. 
+```{sql connection= "con"}
+SELECT  LastName
+FROM customers
+WHERE City IN ('Chicago', 'New York', 'Rome');
+```
+We can count the values which are missing by simply using the keyword IS NULL
+
+```{sql connection= "con"}
+SELECT  COUNT(*)
+FROM employees 
+WHERE LastName IS NULL;
+```
+We can also get the rows or records which are not NULL
+```{sql connection= "con"}
+SELECT  COUNT(*)
+FROM employees 
+WHERE LastName IS NOT NULL;
+```
+
+In SQL, the LIKE operator can be used in a WHERE clause to search for a pattern in a column. To accomplish this, you use something called a wildcard as a placeholder for some other values. There are two wildcards you can use with LIKE:
+
+The % wildcard will match zero, one, or many characters in text. For example, the following query matches companies like 'Data', 'DataC' 'DataCamp', 'DataMind', and so on.
+
+The following code shows the name which starts with "B"
+```{sql connection= "con"}
+SELECT * 
+FROM customers
+WHERE LastName LIKE 'B%';
+```
+To Get the names of people whose names have 'r' as the second letter we can use the following query
+```{sql connection= "con"}
+SELECT * 
+FROM customers
+WHERE LastName LIKE '_r%';
+```
+
+## Aggregate Functions
+Often, you will want to perform some calculation on the data in a database. SQL provides a few functions, called aggregate functions, to help you out with this.
+We can find the Average using AVG keyword on a column . 
+
+```{sql connection= "con"}
+SELECT AVG(Total)
+FROM invoices;
+```
+We can find the Maximum value using Max keyword on a column . 
+```{sql connection= "con"}
+SELECT MAX(Total)
+FROM invoices;
+```
+We can find the Sum of all the values in the column using SUM keyword on a column . 
+```{sql connection= "con"}
+SELECT SUM(Total)
+FROM invoices;
+```
+
+Aggregate functions can be combined with the WHERE clause to gain further insights from your data.
+
+```{sql connection= "con"}
+SELECT SUM(Total)
+FROM invoices
+WHERE BillingCountry=="USA";
+```
+
+Aliasing simply means you assign a temporary name to something. To alias, you use the AS keyword
+```{sql connection= "con"}
+SELECT InvoiceId, Total- 5.65 AS Differnce_from_average
+FROM invoices;
+```
+```{sql connection= "con"}
+SELECT InvoiceId, Total/2 AS Halfoftotal
+FROM invoices;
+```
+```{sql connection= "con"}
+SELECT MAX(Total)-MIN(Total) AS Difference
+FROM invoices;
+```
+## Sorting and Grouping
+In SQL, the ORDER BY keyword is used to sort results in ascending or descending order according to the values of one or more columns.
+
+By default ORDER BY will sort in ascending order. If you want to sort the results in descending order, you can use the DESC keyword.
+```{sql connection= "con"}
+SELECT Total,BillingAddress
+FROM invoices
+ORDER BY Total;
+```
+```{sql connection= "con"}
+SELECT Total,BillingAddress,InvoiceDate
+FROM invoices
+ORDER BY InvoiceDate DESC;
+```
+ORDER BY can also be used to sort on multiple columns. It will sort by the first column specified, then sort by the next, then the next, and so on. For example,
+
+```{sql connection= "con"}
+SELECT Total,BillingAddress,InvoiceDate
+FROM invoices
+ORDER BY InvoiceDate,Total ;
+```
+GROUP BY allows you to group a result by one or more columns
+ 
+```{sql connection= "con"}
+SELECT Company, COUNT(*)
+FROM customers
+GROUP BY Company;
+```
+```{sql connection= "con"}
+SELECT  MAX(Total),BillingCountry,InvoiceDate
+FROM invoices
+GROUP BY BillingCountry
+ORDER BY InvoiceDate;
+```
+
+If you want to filter based on the result of an aggregate function, you need another way! That's where the HAVING clause comes in. 
+
+```{sql connection= "con"}
+SELECT  BillingCountry
+FROM invoices
+GROUP BY BillingCountry
+HAVING COUNT(InvoiceId)>10;
+```
+

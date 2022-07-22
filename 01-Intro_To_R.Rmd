@@ -1,0 +1,309 @@
+# (PART) DataCamp {-} 
+
+# Introduction to R
+
+<https://learn.datacamp.com/courses/free-introduction-to-r>
+
+<span style="color:teal;font-weight:bold">(Note: If you do [Introduction to R for Finance](https://learn.datacamp.com/courses/introduction-to-r-for-finance) instead, change the title of this bookdown chapter above and change the DataCamp chapter titles below. Whichever version of Intro to R you do, delete this note)</span>
+
+
+
+
+ 
+
+
+
+
+
+## Intro to basics
+
+### Basic Arithmetics
+We should know how to do all the basic arithmetic in the R. The table below shows the basic arithmetic R codes and their output. 
+
+Math          | R code               |      Output |
+:------------  | :-------------:        |  -----------:  |
+Addition  |      3+4  |  7  |
+Subtraction   |      5-2    |   3 |
+Multiplication  | 3*2 |  6  | 
+Division | 80/10 | 8  |
+Exponential  | 2^3  | 8 |
+Modulo | 23%%5  | 3  |
+Parentheses  |  (5*6)/5 | 6  |   
+
+### Variables
+
+A variable is an option to store a value. This value might be of different types like numbers, names or boolean like **TRUE** or **False**. We can assign a value to a variables my the command below :--
+```{r}
+first_variable <- 65
+```
+
+We can see that we have assigned the number 65 in the variable named **first_variable**. We can use underscore(_) in between variables name if it's a two or more word name. It will help us or the code readers to understand the variable name easily and we can use this variable later anywhere in the code by writing **first_variable** and this will refer to the value store in it which is **65**  . The r code below shows the value of the variable :--  
+```{r}
+first_variable
+```
+
+
+### Variable Types  
+
+There are some data types that r works with the basic data types that r works with are given below :-- 
+
+*  Decimal (Values like 5.6 which are not whole numbers)  
+*  Integers (Values like 100 which are Whole numbers )  
+*  Characters (Text or string values)  
+     +  quotation marks " " indicates that it is character  
+*  Boolean ( Values which are only <span style="color:red">**TRUE** or **FALSE** </span>)   
+     + remember R is case Sensitive. 
+
+Declared variables with different variable types are shown below:--
+
+```{r}
+decimal_variable <- 5.5
+integer_variable <- 100
+charcter_variable  <- "this is a character"
+boolean_variable. <- TRUE
+```
+
+You can check the type of variables by using the function <span style="color:red"> class() </span>
+```{r}
+class(decimal_variable)
+class(integer_variable)
+class(charcter_variable)
+class(boolean_variable.)
+```
+
+## Vectors
+Vectors are one dimension arrays that can hold numeric data, character data, or logical data. 
+We can just use <span style="color:red"> c(" "," ") </span> and create a vector and assign it to a variable name of vector. 
+```{r}
+econ_vector <- c("Microecon","Econometrics","Macroecon")
+econ_vector
+```
+
+We can give a name to the elements in a vector by using the <span style="color:red"> names() </span> function. 
+
+```{r}
+#Total accounts in the Appleton gas station (costs are negative numbers) for the first week 
+appleton_gas <- c(1000, 340, -459, 20, -345)
+#Total accounts in the Greenbay gas station (costs are negative numbers) for the first week 
+greenbay_gas <- c( 345, 89, -321 , 567, 100)
+#The names of the variables according to the days in the week in a vector 
+days_in_the_week <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+#Assigning the names of the variables using names function 
+names(appleton_gas) <- days_in_the_week
+names(greenbay_gas) <- days_in_the_week
+
+appleton_gas
+
+greenbay_gas
+```
+We can also do arithmetic in between vectors . For the business above we can find the total income or cost of the business in each day using arithmetic.  
+
+```{r}
+Total_income <- appleton_gas + greenbay_gas
+Total_income
+```
+
+We can use the sum function to calculate the total of all the elements in a vector. 
+
+```{r}
+Total_appleton_gas <- sum(appleton_gas)
+Total_greenbay_gas <- sum(greenbay_gas)
+
+Total_business <- Total_greenbay_gas + Total_appleton_gas
+
+Total_business
+```
+
+ We can also do comparison in between vectors. The logical comparison operators in r are :--  
+
+
+Operator  |  Used for  |
+:---------:  |  :---------:  |
+<  |  Less Than | 
+> | Greater Than  |  
+<=  | less than or equal to  |  
+>=  |  greater than or equal to |  
+==  | Equal To |
+!=  | Not Equal To |
+
+```{r}
+Total_appleton_gas < Total_greenbay_gas 
+```
+ We can also select individual elements from a vector by using 
+<span style="color:red"> [ ] </span>.We can also select multiple elements using like <span style="color:red"> c(1:3) </span> 
+```{r}
+First_three_days<- appleton_gas[c(1:3)] + greenbay_gas[c(1:3)]
+First_three_days
+```
+We can see which day we went on loss and which day we just had profit in the gas station. 
+```{r}
+appleton_profitonlydays <- appleton_gas >0
+appleton_profitonlydays
+
+```
+We can also see the desired elements from the vector too using square brackets 
+```{r}
+
+appleton_gas[appleton_profitonlydays]
+```
+
+
+## Matrices
+
+Previously we have worked with one dimensional vector, now we are looking at two dimensional matrix. The format to create matrix is <span style="color:red"> matrix(1:9, byrow = TRUE, nrow = 3) </span> . This will create a matrix of 3 rows which is instructed by **nrow=3** and the elements will be 1 to 9. 
+The argument byrow indicates that the matrix is filled by the rows. If we want the matrix to be filled by the columns, we can just write byrow = FALSE.
+
+```{r}
+matrix(1:12, byrow = TRUE, nrow = 4)
+```
+we can also name the rows and columns of the matrix using <span style="color:red">colnames() </span> and <span style="color:red"> rownames() </span>
+
+```{r}
+Firstyear_profit <- c(340,890)
+Secondyear_profit <- c(900,234)
+Thirdyear_profit <- c(300,450)
+
+Business_matrix <- matrix(c(Firstyear_profit, Secondyear_profit, Thirdyear_profit), byrow=TRUE, nrow = 3)
+time <- c("First Year", "Second Year", "Third Year")
+business_name <- c("Appleton Gas", " GreenBay Gas")
+
+colnames(Business_matrix) <- business_name
+rownames(Business_matrix) <- time
+
+Business_matrix
+
+```
+
+We can also use <span style="color:red"> rowSums() </span> and <span style="color:red"> colSums() </span> function to add the all the elements in a row or in a column.
+
+```{r}
+rowSums(Business_matrix)
+colSums(Business_matrix)
+```
+We can use <span style="color:red"> rbind() </span> and <span style="color:red"> cbind() </span> to add rows and columns to a matrix. 
+```{r}
+Fourth_year <- c(670,320)
+Business_matrix_new <- rbind(Business_matrix, Fourth_year)
+
+Chicago_gas <- c(900,1200,450,3400)
+Business_matrix_new <-cbind(Business_matrix_new, Chicago_gas)
+
+Business_matrix_new
+```
+
+We can select one or more elements from a matrix using **[ ]**. The format is <span style="color:red"> matrix[row,column] </span> We can also select whole ro or column like this <span style="color:red"> matrix[,1] </span> fro whole column and <span style="color:red"> matrix[1,] </span> for whole row
+
+```{r}
+allyear_chicago <- Business_matrix_new[,3]
+allyear_chicago
+```
+
+We can also do standard arithmetic on Matrices. 
+
+```{r}
+Business_Tax <- Business_matrix_new * 0.10
+mean_income_firstyear <- mean(Business_matrix_new[1,])
+Business_Tax
+mean_income_firstyear
+```
+
+## Factors
+There are two types of variables : Quantitative or Continuous and Categorical. Quantitative or Continuous variables are the variables which only consists of values which are numbers/countable. Ex: Number of students, Price, etc.
+
+Categorical variables are the variables which are non countable. Ex: Cities, Countries, Sex, Type, Month, etc.
+
+The difference between a categorical variable and a continuous variable is that a categorical variable can belong to a limited number of categories. A continuous variable, on the other hand, can correspond to an infinite number of values.
+
+We can factor vectors to it’s factor levels by the <span style="color:red"> factor() </span> function and check it’s factor levels.
+
+```{r}
+race_results <- c("First","Second","Third","First","Third")
+factor_race_results <- factor(race_results)
+factor_race_results
+```
+
+There are two types of categorical variables: a nominal categorical variable and an ordinal categorical variable.
+
+A nominal variable is a categorical variable without an implied order. This means that it is impossible to say that ‘one is worth more than the other’. Ex : Animals, Planets, Cities
+
+Ordinal variables do have a natural ordering. Ex: Tall, Short or Spicy, Spicier, Spiciest.
+
+We can set the factor levels with the function <span style="color:red"> levels() </span>.
+
+We can also see the overview of the contents easily and quickly using the <span style="color:red"> summary() </span> function.
+
+```{r}
+factor_race_results_order <- factor(race_results, ordered= TRUE , levels = c("First", "Second", "Third"))
+
+summary(factor_race_results_order)
+```
+
+We can also compare the ordered factors using the comparison operators in R. 
+```{r}
+race2 <- factor_race_results_order[2]
+race4 <- factor_race_results_order[4]
+ race2 > race4
+```
+
+## Data frames
+Till now we have worked with one dimensional array which are the vectors and also we have worked with two dimensional arrays  which are the matrix. Now we will learn working with the two dimensional objects which are the data frame. 
+A data frame has the variables of a data set as columns and the observations as rows.
+
+The function <span style="color:red"> head() </span> enables you to show the first observations of a data frame.
+
+The function <span style="color:red"> tail() </span> prints out the last observations in your data set.
+
+The function <span style="color:red"> str </span> shows you the structure of your data set.
+
+```{r}
+students <- c("Nafis", "Johnny" ,"Duval", "Rith", "Kat" ,"Rachel")
+year <- c("freshman","sophomore","junior","freshman","senior","junior")
+grades <- c(90,87,89,96,98,75)
+studyhours <- c(9,4,7,10,4,6)
+international <- c(TRUE, FALSE, TRUE, FALSE, TRUE, FALSE)
+course_data <- data.frame(students, year, grades, studyhours, international)
+str(course_data)
+head(course_data)
+```
+We can also access the elements in the data frame using **[ ]** just like we did in matrix 
+```{r}
+#used to get the data only for the 3rd student
+course_data[3,]
+```
+
+We can also print a whole column using **$** and the heading name
+
+```{r}
+course_data$grades
+```
+We can also find Duval's data very easily using just the <span style="color:red"> subset(dataset , subset = some condition) </span>
+
+```{r}
+subset(course_data, subset = (students=="Duval"))
+```
+We can also the data on the basis of a fixed variable with the 
+<span style="color:red"> order()</span> function.
+```{r}
+sorted_course_data <- order(course_data$grades)
+course_data[sorted_course_data,]
+```
+
+## Lists
+ We can construct a list with the <span style="color:red"> list()</span> function which can include matrix, vectors and also dataframes
+```{r}
+new_list <- list(Business_matrix_new, appleton_gas, course_data)
+new_list
+```
+We can also change the names of the components of the list 
+```{r}
+new_list <- list(matrix=Business_matrix_new, vector=appleton_gas, df=course_data)
+
+```
+We can also select components of the list using the **[ ]**.
+
+```{r}
+#We will select the 3rd component from the 3rd element of the list
+new_list[[3]][3]
+```
+
+

@@ -1,0 +1,340 @@
+# Cleaning Data in R
+
+<https://learn.datacamp.com/courses/cleaning-data-in-r>
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(gapminder)
+library(assertive)
+library(lubridate)
+```
+
+
+## Common Data Problems
+Data Type Constraints:--  
+We can find out all the column data types using the glimpse() function or the summary() or the str() 
+
+```{r}
+glimpse(gapminder)
+```
+
+We can also see a data type by using the class() or we can specifically see if it is of a certain data type.
+```{r}
+class(gapminder$continent)
+is.numeric(gapminder$gdpPercap)
+```
+We can also convert data types into factors using as.factor() 
+```{r}
+filtered <- gapminder %>% filter(year>1952 & year<1977) %>% mutate(year_fct = as.factor(year))
+#assert that year_fct is factor
+assert_is_factor(filtered$year_fct)
+summary(filtered$year_fct)
+```
+
+Range Constraints :-- 
+
+To see if there is any data that is out of range, we can use the assert_all_are_in_closed_range(dataset$variable_name, lower = lower value we want, upper = upper value we want).
+This will show an errorr and will show the data frame of the countries which ar enot in range
+```{r}
+#assert_all_are_in_closed_range(gapminder$gdpPercap, lower=800 , upper=2500)
+```
+
+We can handle the out of range values easily :--   
+
+*  Remove Rows   
+*  Treat as missing (NA)   
+*  Replace with range limit   
+*  Replace with other value based on domain knowledge.   
+
+Removing Rows :--  
+```{r}
+gapminder_2007 <- gapminder %>% filter(year==2007)
+removed_rows <- gapminder_2007 %>% filter(gdpPercap>800 & gdpPercap<2500) 
+head(removed_rows)
+```
+
+Treat as missing :--  
+We can replace values as NA using the replace() 
+```{r}
+replaced <- gapminder_2007 %>% mutate(replaced = replace(gdpPercap, gdpPercap>2500, NA))
+head(replaced)
+```
+We can use the assert_all_are_in_past(dataset$variable) function to check to see if there is any date in future.
+
+Uniqueness constraints :
+
+We can use the duplicated() function to check for observations that are duplicated.
+```{r}
+sum(duplicated(gapminder))
+
+#to check which observations are duplicated 
+filter(gapminder, duplicated(gapminder))
+```
+We can drop the duplicated using the distinct() function 
+```{r}
+gapminder <- distinct(gapminder)
+sum(duplicated(gapminder))
+
+```
+
+We can find partial duplicates using 
+
+```{r}
+#filter(data , variable1 %in% dup_idsvariable1 ,variable2 %in% dup_ids $variable2 )
+```
+
+We can drop the partial duplicates using distinct() again 
+```{r}
+a <- gapminder %>% distinct(country, continent, .keep_all = TRUE)
+```
+
+
+## Categorical and Text Data
+Categorical Data :-- 
+Categorical data has known and fixed values.  
+
+Factors :--  
+In factors each category is stored as a number and has a corresponding label. We can see the labels using the levels() function. Factors cannot have values that fall outside the predefined values.  
+
+We can use the anti_join or semi_join functions to find invalid factors in our data. Ther anti_join function separates the data from our data frame which are not present in the data frame we are joining it with.  
+```{r}
+sfo_survey <- readRDS("sfo_survey_ch2_1.rds")
+sfo_survey%>% count(dest_size)
+```
+
+Categorical Data Problems :-
+There are problems like inconsistency within a category of the data.  
+Type of inconsistencies :--  
+
+*  Case inconsistency.   
+*  White Space inconsistency   
+*  Too many Categories   
+
+
+
+```{r}
+sfo_survey %>% count(cleanliness)
+```
+
+```{r}
+# Add new columns to sfo_survey
+sfo_survey <- sfo_survey %>%
+  # dest_size_trimmed: dest_size without whitespace
+  mutate(dest_size_trimmed = str_trim(dest_size),
+         # cleanliness_lower: cleanliness converted to lowercase
+         cleanliness_lower = str_to_lower(cleanliness))
+
+# Count values of dest_size_trimmed
+sfo_survey %>%
+  count(dest_size_trimmed)
+
+# Count values of cleanliness_lower
+sfo_survey %>%
+  count(cleanliness_lower)
+```
+In case of too many categories we can combine all of the insignificant ones into one row by calling it “other”. We can use the fct_collapse() function to do this. 
+
+```{r}
+# Count categories of dest_region
+sfo_survey %>%
+  count(dest_region)
+
+# Categories to map to Europe
+europe_categories <- c("EU", "eur", "Europ")
+
+# Add a new col dest_region_collapsed
+sfo_survey %>%
+  # Map all categories in europe_categories to Europe
+  mutate(dest_region_collapsed = fct_collapse(dest_region, 
+                                              Europe = europe_categories)) %>%
+  # Count categories of dest_region_collapsed
+  count(dest_region_collapsed)
+```
+Cleaning Text Data :--  
+Some Times we see inconsistency in the text data and for solving that we use str_detect() within filter. 
+```{r}
+# Filter for rows with "-" in the phone column
+phone <- c("397-362-5469","(102) 928-7959","38 982 5585")
+name <- c("nafis", "ahmed", "munim")
+data <- data.frame(name,phone)
+data
+
+data %>%
+  filter(str_detect(phone, "-"))
+# Filter for rows with "(" or ")" in the phone column
+data %>%
+  filter(str_detect(phone, fixed("(")) | str_detect(phone, fixed(")")))
+```
+We can also remove using str_remove_all()
+```{r}
+# Remove parentheses from phone column
+phone_no_parens <- data$phone %>%
+  # Remove "("s
+  str_remove_all(fixed("(")) %>%
+  # Remove ")"s
+  str_remove_all(fixed(")"))
+
+
+
+# Add phone_no_parens as column
+data <- data %>%
+  mutate(phone_no_parens = phone_no_parens,
+  # Replace all hyphens in phone_no_parens with spaces
+         phone_clean = str_replace_all(phone_no_parens, "-", " "))
+```
+We can remove invalid phone numbers which are less than 12 digits
+
+```{r}
+# Check out the invalid numbers
+data %>%
+  filter(str_length(phone_clean) != 12)
+
+# Remove rows with invalid numbers
+data %>%
+  filter(str_length(phone_clean) == 12)
+```
+
+## Advanced Data Problems
+Uniformity:
+
+Uniformity issues are when continuous data points have different units or formats.
+
+We can apply certain changes to specific observations by using the ifelse(condition, value_if_true, value_is_false)
+
+```{r}
+gap <- gapminder  %>% filter(year>1990) %>% select(country,year,pop)
+gap %>% mutate(decade = ifelse(year>1990 & year <2000, "19Decade", "20Decade"))
+```
+
+```{r}
+accounts <- readRDS("ch3_1_accounts.rds")
+head(accounts)
+```
+We can make all dates into one format which is same. We can use the parse_date_time() for that
+```{r}
+
+# Define the date formats
+formats <- c("%Y-%m-%d", "%B %d, %Y")
+
+# Convert dates to the same format
+new <- accounts %>%
+  mutate(date_opened_clean = parse_date_time(date_opened, orders = formats))
+head(new)
+```
+Cross Field Validation:--  
+
+Cross field validation is essentially a sanity check on our data. To check that one value makes sense based on other values in the dataset.
+
+
+```{r}
+# Find invalid acct_age
+account <- accounts %>%
+  # theoretical_age: age of acct based on date_opened
+  mutate(theoretical_age = floor(as.numeric(date_opened %--% today(), "years"))) 
+```
+
+Completeness :--  
+We can visualize the missing values of a data set using vis_miss() which is in the visdat package
+
+```{r}
+library(visdat)
+# Visualize the missing values by column
+vis_miss(accounts)
+```
+We can find missing values in a data set using the is.na() function.
+```{r}
+sum(is.na(accounts))
+```
+We can also filter by the missing values 
+```{r}
+filter_values <- accounts %>%
+  filter(!is.na(date_opened))
+head(filter_values)
+```
+## Record Linkage
+
+Comparing strings:
+
+To calculate edit distance in R, we can use the stringdist function from the stringdist package. stringdist(“comparing_element1”, “comparing_element2”, method = “method_we_want_to_use”)
+
+The typos needed are 
+i) Insertion.  
+ii) deletion    
+iii)Substitution.  
+iv)Transposition.   
+
+
+```{r}
+library(stringdist)
+stringdist("baboon", "typhoon", method = "dl")
+stringdist("baboon", "typhoon", method = "lcs")
+stringdist("baboon", "typhoon", method = "jaccard")
+```
+Types of edit distance    
+
+*  Damerau-Levenshtein     
+*  Levenshtein   
+   +  Considers only substitution, insertion, and deletion.  
+*  LCS (Longest Common Subsequence)   
+    +  Considers only insertion and deletion  
+*  Others  
+    +  Jaro-Winkler  
+    +  Jaccard  
+    
+    
+The fuzzyjoin package allows us to join based on string distance.    
+```{r}
+#library(fuzzyjoin)
+#stringdist_left_join(df1, df2, by = "common factor", method = "dl", max_dist = "max dist you want to allow ")
+```
+    
+Record Linkage:
+
+Record linkage, or data linkage, is simply the integration of information from two independent sources. Records from the two sources that are believed to relate to the same individual are matched in such a way that they may then be treated as a single record for that individual.
+To generate pairs in rows in R we use the reclin package. The blocking variable is the variable we think matches the pairs.
+ 
+```{r}
+library(reclin)
+zagat <- readRDS("zagat.rds")
+fodors <- readRDS("fodors.rds")
+
+```
+ Use pair_blocking() to generate pairs.
+```{r}
+
+
+# Generate all possible pairs
+m <- pair_blocking(zagat, fodors)
+m
+
+# Generate pairs with same city
+mm <- pair_blocking(zagat, fodors, blocking_var = "city")
+mm
+```
+
+ To compare pairs using LCS, We set default_comparator = lcs().
+```{r}
+# Generate pairs
+new <- pair_blocking(zagat, fodors, blocking_var = "city") %>%
+  # Compare pairs by name, phone, addr
+  compare_pairs(by = c("name", "phone", "addr"),
+                default_comparator = jaro_winkler())
+new
+```
+ Scoring and linking :--  
+ The score_problink() function will score using probabilities, while score_simsum() will score by summing each column's similarity score.
+```{r}
+# Create pairs
+mmm <-new %>%
+  score_problink() %>%
+
+ # Select pairs
+  select_n_to_m() %>%
+  
+# Link data 
+  link()
+head(mmm)
+```
+ 

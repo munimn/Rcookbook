@@ -1,0 +1,7 @@
+book_filename: "BP"
+output_dir: docs
+delete_merged_file: true
+new_session: yes
+edit: https://github.com/econ380w22/bpNaMuW6Rb6MaX1L8p/edit/master/%s
+view: https://github.com/econ380w22/bpNaMuW6Rb6MaX1L8p/blob/master/%s
+history: https://github.com/econ380w22/bpNaMuW6Rb6MaX1L8p/commits/master/%s

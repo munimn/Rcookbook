@@ -1,0 +1,285 @@
+# Joining Data with dplyr
+
+<https://learn.datacamp.com/courses/joining-data-with-dplyr>
+
+```{r}
+library(dplyr)
+library(tidyverse)
+library(gapminder)
+library(lubridate)
+```
+
+
+## Joining Tables
+Joining Tables is sometimes really important. We can use the inner_join() verb to join two datasets. But we need to make sure that the two tables we ar ejoining have one column in common and we have to join according to that column. 
+```{r}
+data1 <- iris%>% select(Species, Petal.Length,  Petal.Width) %>% mutate(index_1 =row_number())
+data2 <- iris%>% select(Species, Sepal.Length,  Sepal.Width) %>% mutate(index_2 =row_number())
+head(data1)
+head(data2)
+```
+
+```{r}
+join <- data1 %>% inner_join(data2,(by=c("index_1" = "index_2")))
+join2 <- join %>% rename(index=index_1)
+head(join2)
+```
+We can use suffix() to add any suffix to the same column names we are joining 
+```{r}
+data_joint <- data1 %>%
+  inner_join(data2, by = c("index_1" = "index_2"), suffix = c("_main", "_notRequired")) %>% rename(index=index_1)
+
+head(data_joint)
+```
+```{r}
+main_data <- data_joint %>% select(Species=Species_main, Sepal.Length, Sepal.Width, Petal.Length, Petal.Width)
+head(main_data)
+```
+
+We can also three or more tables using the inner_join() verb and pipe operators for more than once
+```{r}
+inventories <- readRDS("inventories.rds")
+inventory_parts <- readRDS("inventory_parts.rds")
+sets <- readRDS("sets.rds")
+sets %>%
+	# Add inventories using an inner join 
+	inner_join(inventories, by = "set_num") %>%
+	# Add inventory_parts using an inner join 
+	inner_join(inventory_parts, by = c("id" = "inventory_id"))
+
+```
+We can also join any other table like this.
+
+## Left and Right Joins
+An inner join() only keep observations that appear in both tables.But if want to keep all the observations of the first table (left table) while joining we use the left_join verb. Similarly, if want to keep all the observations of the second table (right table) while joining we use the right_join verb.
+
+```{r}
+inventory_parts_joined <- inventories %>%
+  inner_join(inventory_parts, by = c("id" = "inventory_id")) 
+inventory_parts_joined
+```
+
+```{r}
+# Aggregate Millennium Falcon for the total quantity in each part
+millennium_falcon_colors <- inventory_parts_joined %>%
+  filter(set_num == "7965-1") %>%
+  group_by(color_id) %>%
+  summarize(total_quantity = sum(quantity))
+
+# Aggregate Star Destroyer for the total quantity in each part
+star_destroyer_colors <- inventory_parts_joined %>%
+  filter(set_num == "75190-1") %>%
+  group_by(color_id) %>%
+  summarize(total_quantity = sum(quantity))
+
+# Left join the Millennium Falcon colors to the Star Destroyer colors
+millennium_falcon_colors %>%
+  left_join(star_destroyer_colors, by = "color_id", suffix = c("_falcon", "_star_destroyer"))
+```
+We can use the right_join() to keep all the observations in the second table including the matching observations in hte first table
+
+```{r}
+batmobile <- inventory_parts_joined %>%
+  filter(set_num == "7784-1") %>%
+  select(-set_num)
+
+batwing <- inventory_parts_joined %>%
+  filter(set_num == "70916-1") %>%
+  select(-set_num)
+
+batmobile
+batwing
+```
+
+
+```{r}
+batmobile %>%
+  left_join(batwing, by = c("part_num", "color_id"), suffix = c("_batmobile", "_batwing"))
+#Filter where Quantity_batmobile = NA
+batmobile %>%
+  right_join(batwing, by = c("part_num", "color_id"), suffix = c("_batmobile", "_batwing")) %>% 
+  filter(is.na(quantity_batmobile))
+#Replace NA with 0   
+batmobile %>%
+  right_join(batwing, by = c("part_num", "color_id"), suffix = c("_batmobile", "_batwing")) %>% 
+  replace_na(list(quantity_batmobile = 0))
+```
+
+We can also join themes to themselves. 
+```{r}
+themes <- readRDS("themes.rds")
+themes %>% 
+    # Inner join the themes table
+    inner_join(themes, by = c("id" = "parent_id"), suffix = c("_parent", "_child")) %>% 
+    # Filter for the "Harry Potter" parent name 
+    filter(name_parent == "Harry Potter")
+themes %>% 
+  # Left join the themes table to its own children
+  left_join(themes, by = c("id" = "parent_id"), suffix = c("_parent", "_child")) %>%
+  # Filter for themes that have no child themes
+  filter(is.na(name_child))
+```
+
+
+
+## Full, Semi, and Anti Joins
+We can join all the observations from both of the datasets using the full_join() verb
+```{r}
+batmobile %>%
+full_join(batwing, by = c("part_num", "color_id"), suffix = c("_batmobile", "_batwing"))
+```
+
+There are two two type of filtering joins and the filtering joins doesn't add new variables rather it keeps or removes observation from the first table.
+
+The semi_join() keeps the observations that are also in the first table it asks what observations are in X and also in Y 
+
+```{r}
+batmobile %>% 
+  semi_join(batwing, by = c("color_id", "part_num"))
+```
+The anti join asks the question “What observations in X are NOT in Y?”
+
+```{r}
+batmobile %>% 
+  anti_join(batwing, by = c("color_id", "part_num"))
+```
+Visualizing Set Differences :--  
+We aggregate sets into colors 
+```{r}
+batmobile_colors <- batmobile %>% 
+  group_by(color_id) %>%
+  summarize(total = sum(quantity))
+batwing_colors <- batwing %>% 
+  group_by(color_id) %>%
+  summarize(total = sum(quantity))
+```
+
+```{r}
+colors <- readRDS("colors.rds")
+#Comparinf Color Schemes of sets
+colors_joint <- batmobile_colors %>% 
+  full_join(batwing_colors, by = "color_id", suffix = c("_batmobile", "_batwing")) %>%
+  replace_na(list(total_batmobile = 0, total_batwing = 0)) %>%
+  #Adding the color names
+  inner_join(colors, by = c("color_id" = "id")) %>% 
+  #Adding fractions
+  mutate(total_batmobile = total_batmobile / sum(total_batmobile),
+         total_batwing = total_batwing / sum(total_batwing),
+         difference = total_batmobile - total_batwing)
+```
+Now we can visualize the data 
+```{r}
+library(ggplot2)
+library(forcats)
+
+color_palette <- setNames(colors_joint$rgb, colors_joint$name)
+
+colors_joint %>% 
+  mutate(name = fct_reorder(name, difference)) %>% 
+  ggplot(aes(name, difference, fill = name)) + 
+  geom_col() + 
+  coord_flip() + scale_fill_manual(values = color_palette, guide = FALSE)
+```
+
+
+## Case Study: Joins on Stack Overflow Data
+
+The joining verbs :--  
+*  inner_join()  
+*  right_join()  
+*  left_join()  
+*  full_join()  
+*  semi_join()   
+*  anti_join()  
+
+```{r}
+question_tags <- readRDS("question_tags.rds")
+questions <- readRDS("questions.rds")
+tags <- readRDS("tags.rds")
+answers <- readRDS("answers.rds")
+```
+```{r}
+question_with_tags <- questions %>%
+  inner_join(question_tags, by = c("id" = "question_id")) %>%
+  inner_join(tags, by = c("tag_id" = "id"))
+
+question_with_tags
+#Most Common Tags 
+commontags <- question_with_tags %>% count(tag_name, sort= TRUE)
+commontags
+```
+
+```{r}
+# Join the questions and question_tags tables
+questions %>%
+	left_join(question_tags, by = c("id" = "question_id")) %>%
+# Join in the tags table
+	left_join(tags, by = c("tag_id" = "id"))%>%
+  # Replace the NAs in the tag_name column
+    replace_na(list(tag_name = "only-r"))
+```
+
+```{r}
+question_with_tags %>%
+	# Group by tag_name
+	group_by(tag_name) %>%
+	# Get mean score and num_questions
+	summarize(score = mean(score),
+          	  num_questions = n()) %>%
+	# Sort num_questions in descending order
+	arrange(desc(num_questions))
+```
+Now we can add the answers with questions 
+```{r}
+questions %>%
+	# Inner join questions and answers with proper suffixes
+	inner_join(answers, by = c("id" = "question_id"), suffix = c("_question", "_answer")) %>%
+	# Subtract creation_date_question from creation_date_answer to create gap
+	mutate(gap = as.integer(creation_date_answer - creation_date_question)) 
+```
+The bind_rows() helps us to put one table on top of the other it's like stacking. 
+```{r}
+
+
+questions_type <- questions %>% mutate(type = "question")
+
+answers_type <-  answers %>% mutate(type = "answer")
+
+posts <- bind_rows(questions_type, answers_type)
+
+#Creating date variable
+questions_answers_year <- posts %>%
+  mutate(year = year(creation_date)) %>%
+  count(year, type)
+#plotting
+ggplot(questions_answers_year, aes(year,n, color = type)) +
+  geom_line()
+```
+```{r}
+# Inner join the question_tags and tags tables with the questions table
+questions_with_tags <-questions %>%
+  inner_join(question_tags, by = c("id" = "question_id")) %>%
+  inner_join(tags, by = c("tag_id" = "id"))
+
+# Inner join the question_tags and tags tables with the answers table
+answers_with_tags <-answers %>%
+  inner_join(question_tags, by = "question_id") %>%
+  inner_join(tags, by = c("tag_id" = "id"))
+# Combine the two tables into posts_with_tags
+posts_with_tags <- bind_rows(questions_with_tags %>% mutate(type = "question"),
+                              answers_with_tags %>% mutate(type = "answer"))
+
+# Add a year column, then count by type, year, and tag_name
+by_type_year_tag <-posts_with_tags %>%
+  mutate(year = year(creation_date)) %>%
+  count(type, year, tag_name)
+# Filter for the dplyr and ggplot2 tag names 
+by_type_year_tag_filtered <- by_type_year_tag %>%
+  filter(tag_name %in% c("dplyr", "ggplot2"))
+
+# Create a line plot faceted by the tag name 
+ggplot(by_type_year_tag_filtered, aes(year, n, color = type)) +
+  geom_line() +
+  facet_wrap(~ tag_name)
+```
+

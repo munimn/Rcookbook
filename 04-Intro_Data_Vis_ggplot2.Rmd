@@ -1,0 +1,451 @@
+# Intro to Data Visualization with ggplot2
+
+<https://learn.datacamp.com/courses/introduction-to-data-visualization-with-ggplot2>
+
+```{r}
+## Load all packages used in this chapter
+library(tidyverse)
+library(ggplot2)
+```
+
+
+## Introduction
+Previously in the chapters we have seen how to create a plot using ggplot(). In this chapter we will explore the functions we can use to make our plot more understandable and easy to read. 
+ Data visualization is really important skill in the data science field and we need to design our plots nicely to achieve the best from the statistics. 
+ 
+We can change a numerical or categorical value as factor by using the function  <span style="color:red">factor()</span> :--
+
+```{r}
+summary(mtcars)
+
+ggplot(mtcars, aes(factor(cyl), mpg)) + geom_point()
+
+```
+  
+
+Jargon of each element :--  
+
+Data  |  Used for  |  
+:---------:  |  :---------:  |  
+Aesthetics  |  x-axis,y-axis,color,fill,size,label,alpha,shape,line width,linetype |  
+Geometrics | point, line, histogram, bar, boxplot  |   
+Themes  | non-data ink  |   
+Statistics  |  binning, smoothing, descriptive, inferential |   
+Coordinates  | cartesian, fixed, polar, limits | 
+Facets | columns, rows |  
+
+
+The grammatical elements description :--   
+
+*  Data (Data set being plotted)  
+*  Aesthetics (The scales onto which we map our data)  
+*  Geometries (The visual elements used for our data)  
+*  Themes(All non-data ink)     
+*  Statistics (Representations of our data to aid understanding)  
+*  Coordinates ( The space on which data will be plotted)  
+*  Facets (Plotting small multiples)    
+
+
+We can use the <span style="color:red">geom_smooth()</span> layer to look for patterns in our data. We use this layer to Plot two continuous position variables in the graph.
+We can also use an argument called **alpha=** in the geom_point() to set this to a point which is the opacity of the point. If we input 0 as alpha it will show all the points as transparent.
+
+```{r}
+str(diamonds)
+ggplot(diamonds, aes(carat, price)) +
+  geom_point() +
+  geom_smooth() 
+```
+
+```{r}
+ggplot(diamonds, aes(carat, price, color = clarity)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth()
+```
+
+## Aesthetics
+
+
+These are the aesthetics you can consider within aes() :--  x, y, color, fill, size, alpha, labels and shape.(in order). 
+```{r}
+head(iris)
+ggplot(iris, aes(x=Sepal.Length, y=Sepal.Width,  size= Petal.Width, color= Species)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth()
+```
+
+
+**Remember that shape and label aesthetics are only for categorical data**  
+
+Typical visible aesthetics:--  
+
+*  x = X axis position.  
+*  y = Y axis position.  
+*  fill = Fill color.   
+*  size = Are or radius of points, thickness of lines.   
+*  alpha = Transparency.   
+*  linetype = line dash pattern.   
+*  labels = Text on a plot or axes.   
+*  shape = Shape.   
+
+Attributes:--  
+We use aesthetics in the aes() and we use attribute in the geom_*() . 
+
+```{r}
+# A hexadecimal color
+my_blue <- "#4ABEFF"
+
+# Change the color mapping to a fill mapping (AESTHETICS)
+ggplot(iris, aes(Sepal.Length, Sepal.Width, color= Species)) +
+  
+  # Set point size and shape (ATTRIBUTES)
+  geom_point( size = 4, shape = 1)
+```
+
+In order to add text, we use the geom_text() function and to use row names of a data set, we set the label of the attribute - label as rownames(name of data set).  
+
+```{r}
+ggplot(mtcars, aes(wt, mpg, color = fcyl)) +
+  # Add text layer with label rownames(mtcars) and color red
+  geom_text(label = rownames(mtcars), color = 'red')
+
+```
+
+Modifying Aesthetics:--  
+
+Position: 
+Adjustment for overlapping :--   
+
+*  identity.  
+*  dodge  
+*  stack.  
+*  fill  
+*  jitter  
+*  jitterdodge  
+*  nudge  
+
+The default for position is the **"identity"**. The **"jitter"** maintains consistency across plots and layers. 
+```{r}
+ggplot(iris, aes(x=Sepal.Length, y=Sepal.Width, color= Species)) + geom_point(position = "jitter")
+```
+
+Scale functions :--  
+
+*  scale_x_*()  
+*  scale_y_*()  
+*  scale_color_*()  
+*  scale_fill_*()  
+*  scale_shape_*()  
+*  scale_linetype_*()  
+*  scale_size_*()  
+
+We can set the labels for x and y axis which is really important to know which axis is used to plot which variable and describe it. we use <span style="color:red">labs()</span> to set the x- and y-axis labels. It takes strings for each argument.  
+<span style="color:red">scale_color_manual()</span> defines properties of the color scale (i.e. axis). The first argument sets the legend title. values is a named vector of colors to use.  
+
+To Implement a custom fill color scale we use scale_fill_manual(). 
+
+```{r}
+palette <- c(automatic = "#377EB8", manual = "#E41A1C")
+
+# Set the position
+ggplot(mtcars, aes(x=factor(cyl), fill = factor(am))) +
+  geom_bar(position="dodge") +
+  labs(x = "Number of Cylinders", y = "Count")
+  scale_fill_manual("Transmission", values = palette)
+```
+You can make one variable plots in ggplot2, but you will need to add a fake y axis by mapping y to zero. 
+When using setting y-axis limits, you can specify the limits as separate arguments, or as a single numeric vector. That is, ylim(lo, hi) or ylim(c(lo, hi)). 
+```{r}
+ggplot(mtcars, aes(mpg, 0)) +
+  geom_jitter() +
+ ylim(-2,2)
+```
+
+
+## Geometries
+Scatter plots (using geom_point()) are intuitive, easily understood, and very common, but we must always consider overplotting, particularly in the following four situations:  
+
+*  Large datasets  
+*  Aligned values on a single axis  
+*  Low-precision data  
+*  Integer data  
+
+Typically, alpha blending (i.e. adding transparency) is recommended when using solid shapes. Alternatively, you can use opaque, hollow shapes.
+
+Small points are suitable for large datasets with regions of high density (lots of overlapping). 
+Overplotting 2: Aligned values
+
+This occurs when one axis is continuous and the other is categorical, which can be overcome with some form of jittering.
+```{r}
+plt_mpg_vs_cyl_by_am <- ggplot(mtcars, aes(cyl, mpg, color = am))
+
+# Default points are shown for comparison
+plt_mpg_vs_cyl_by_am + geom_point()
+```
+```{r}
+# Now jitter and dodge the point positions
+plt_mpg_vs_cyl_by_am + geom_point(position = position_jitterdodge(jitter.width = 0.3, dodge.width = 0.3))
+```
+Let's take a look at another case:
+
+Low-precision data
+This results from low-resolution measurements like in the iris dataset, which is measured to 1mm precision (see viewer).
+```{r}
+ggplot(iris, aes(Sepal.Length, Sepal.Width, color = Species)) +
+  # Use a jitter position function with width 0.1
+  geom_point(alpha = 0.5, position=position_jitter(width=0.1))
+```
+
+Histograms:--  
+
+*  Always set meaningful binwidth for histograms.   
+*  No spaces between bars   
+*  X axis labels are between bars   
+
+
+Positions of Histograms:--  
+
+*  stack (the default): Bars for different groups are stacked on top of each other.    
+*  dodge: Bars for different groups are placed side by side.     
+*  fill: Bars for different groups are shown as proportions.    
+*  identity: Plot the values as they appear in the dataset.   
+
+```{r}
+ggplot(iris, aes(x= Sepal.Width, fill= Species)) + geom_histogram(binwidth = 0.1, center=0.05)
+```
+
+```{r}
+ggplot(iris, aes(x= Sepal.Width, fill= Species)) + geom_histogram(binwidth = 0.1, center=0.05, position = "stack")
+```
+
+```{r}
+ggplot(iris, aes(x= Sepal.Width, fill= Species)) + geom_histogram(binwidth = 0.1, center=0.05, position = "dodge")
+```
+
+```{r}
+ggplot(iris, aes(x= Sepal.Width, fill= Species)) + geom_histogram(binwidth = 0.1, center=0.05, position = "fill")
+```
+
+Bar Plots:
+
+*  geom_bar() [stat = “count”] : counts the number of cases at each X position    
+*  geom_col() [stat = “identity”] : plots actual values   
+
+```{r}
+ggplot(mtcars, aes(cyl, fill = am)) +
+  # Add a bar layer
+  geom_bar()
+```
+
+```{r}
+ggplot(mtcars, aes(cyl, fill = am)) +
+  # Change the position to "dodge"
+  geom_bar(position = "dodge")
+```
+
+```{r}
+ggplot(mtcars, aes(cyl, fill = am)) +
+  # Set the position to "fill"
+  geom_bar(position = 'fill')
+```
+
+
+Line Plots:--  
+
+
+```{r}
+str(economics)
+ggplot(economics, aes(date, unemploy/pop)) +geom_line()
+
+```
+
+
+## Themes
+Themes are all non-data ink visual elements which are not part of the data. THere are three types of themes :--   
+
+*  Text : element_text()     
+*  Line : element_line()  
+*  Rectangle : element_rect()  
+
+Legend :-- A legend of a plot helps to understand which series or groups corresponds to each bar, line, box or observations, based on its type, color or both.  
+
+
+To change stylistic elements of a plot, call theme() and set plot properties to a new value. For example, the following changes the legend position.  
+
+[p + theme(legend.position = new_value)]. 
+
+Here, the new value can be. 
+
+*  “top”, “bottom”, “left”, or “right’”: place it at that side of the plot.  
+*  “none”: don’t draw it.  
+*  c(x, y): c(0, 0) means the bottom-left and c(1, 1) means the top-right.  
+
+```{r}
+ggplot(diamonds, aes(carat, price, color = clarity)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth() +
+  theme(
+    # For all rectangles, set the fill color to grey92
+    rect = element_rect(fill = "grey92"),
+    # For the legend key, turn off the outline
+    legend.key = element_rect(color = NA)
+  )
+```
+Modifying whitespace:--  
+
+Whitespace means all the non-visible margins and spacing in the plot.
+
+To set a single whitespace value, use unit(x, unit), where x is the amount and unit is the unit of measure.
+
+Borders require you to set 4 positions, so use margin(top, right, bottom, left, unit). To remember the margin order, think TRouBLe.
+
+The default unit is "pt" (points), which scales well with text. Other options include "cm", "in" (inches) and "lines" (of text).   
+
+
+```{r}
+ggplot(mtcars, aes(wt, mpg , color= factor(cyl))) + geom_point() +theme(
+    # Set the axis tick length to 2 lines
+    axis.ticks.length = unit(2, "lines")
+  )
+```
+```{r}
+ggplot(mtcars, aes(wt, mpg , color= factor(cyl))) + geom_point() + theme(
+    # Set the legend margin to (20, 30, 40, 50) points
+    legend.margin = margin(20,30, 40, 50, "pt")
+  )
+```
+```{r}
+ggplot(mtcars, aes(wt, mpg , color= factor(cyl))) + geom_point() + theme(
+    # Set the plot margin to (10, 30, 50, 70) millimeters
+   plot.margin = margin(10,30,50,70, "mm")
+  )
+```
+
+
+Defining Theme objects :--   
+
+*  Useful when you have many plots  
+*  Provides consistency in style  
+*  Apply a specific theme everywhere  
+
+```{r}
+
+new <-
+ggplot(iris, aes(x = Sepal.Length, y = Sepal.Width, color = Species))+
+geom_jitter (alpha = 0.6) +
+scale_x_continuous("Sepal Length (cm)", limits = c(4,8), expand = c(0,0)) +
+scale_y_continuous ("Sepal Width (cm)", limits = c(1.5,5), expand = c(0, 0))+
+scale_color_brewer("Species", palette = "Dark2", labels = c ("Setosa",
+"Versicolor","Virginica"))
+
+new + theme(text = element_text (family="serif", size = 14),
+            rect = element_blank (),
+            panel.grid = element_blank() ,
+            title = element_text(color="#8b0000"),
+            axis.line = element_line(color ="black"))
+```
+We can use this theme by saving it to a variable and using it in any other plots. 
+```{r}
+theme_new <- theme(text = element_text (family="serif", size = 14),
+            rect = element_blank (),
+            panel.grid = element_blank() ,
+            title = element_text(color="#8b0000"),
+            axis.line = element_line(color ="black"))
+
+diamond_plot <- ggplot(diamonds, aes(carat, price, color = clarity)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth() 
+diamond_plot + theme_new
+
+```
+We can aslo access to some built-in themes like theme_classic() and theme_bw() 
+```{r}
+new + theme_bw()
+```
+```{r}
+#Access library gg themes for more themes
+library(ggthemes)
+diamond_plot + theme_tufte()
+```
+
+Effective Explanatory Plots:--  
+
+```{r}
+library(gapminder)
+gm2007_complete <- gapminder %>% 
+  filter(year == 2007) %>% 
+  select(country, lifeExp, continent) %>% 
+  arrange(lifeExp)
+gm_2007_asia <- gm2007_complete %>% filter(continent =="Asia")
+gm_2007_asia
+```
+```{r}
+ggplot(gm_2007_asia, aes(x = lifeExp, y = country, color = lifeExp)) +
+  geom_point(size = 4) +
+  geom_segment(aes(xend = 30, yend = country), size = 2) +
+  theme(legend.position="right")
+```
+```{r}
+ggplot(gm_2007_asia, aes(x = lifeExp, y = country, color = lifeExp)) +
+  geom_point(size = 4) +
+  geom_segment(aes(xend = 30, yend = country), size = 2) +
+  theme(legend.position="right")+
+  geom_text(aes(label = lifeExp), color = "white", size = 1.5)
+```
+
+```{r}
+
+
+# Add a title and caption
+ggplot(gm_2007_asia, aes(x = lifeExp, y = country, color = lifeExp)) +
+  geom_point(size = 4) +
+  geom_segment(aes(xend = 30, yend = country), size = 2) +
+  geom_text(aes(label = round(lifeExp,1)), color = "white", size = 1.5) +
+  scale_x_continuous("", expand = c(0,0), limits = c(30,90), position = "top") +
+ 
+ labs(title="Highest and lowest life expectancies, 2007", caption="Source: gapminder")
+```
+We can use nannotate() to add text and a curve to the plot.
+
+```{r}
+diamond_plot +geom_vline(xintercept = 3, color = "grey40", linetype = 3) +
+  annotate(
+    "text",
+    x = 3.5, y = 4900,
+    label = "The\nrandom\nline",
+    vjust = 1, size = 3, color = "grey40"
+  ) +
+  annotate(
+    "curve",
+    x = 3.5, y = 4900,
+    xend = 3, yend = 5200,
+    arrow = arrow(length = unit(0.2, "cm"), type = "closed"),
+    color = "grey40"
+  )
+```
+```{r}
+global_mean <- mean(gm2007_complete$lifeExp)
+x_start <- global_mean + 4
+y_start <- 5.5
+x_end <- global_mean
+y_end <- 7.5
+ggplot(gm_2007_asia, aes(x = lifeExp, y = country, color = lifeExp)) +
+  geom_point(size = 4) +
+  geom_segment(aes(xend = 30, yend = country), size = 2) +
+  geom_text(aes(label = round(lifeExp,1)), color = "white", size = 1.5) +
+  scale_x_continuous("", expand = c(0,0), limits = c(30,90), position = "top") +
+ 
+ labs(title="Highest and lowest life expectancies, 2007", caption="Source: gapminder") +
+  geom_vline(xintercept = global_mean, color = "grey40", linetype = 5) +
+  annotate(
+    "text",
+    x = x_start, y = y_start,
+    label = "The\nglobal\naverage",
+    vjust = 1, size = 3, color = "red")+
+  annotate(
+    "curve",
+    x = x_start, y = y_start,
+    xend = x_end, yend = y_end,
+    arrow = arrow(length = unit(0.2, "cm"), type = "closed"),
+    color = "grey40")
+```
+

@@ -1,0 +1,411 @@
+# Categorical Data in the Tidyverse
+
+<https://learn.datacamp.com/courses/categorical-data-in-the-tidyverse>
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(fivethirtyeight)
+library(forcats)
+library(skimr)
+```
+
+
+## Introduction to Factor Variables
+Categorical Data (Nominal): Categorical Data are the data that fall under un-ordered groups.Ex: Occupation
+
+Ordinal Data(Qualitive): Have an inherit order but not a constant distance between them. Ex: Income (o-50k, 50k - 150k, 150k - 500k) <- there is an inherit order (smallest to largest) but no constant distance.
+
+We can find out if a data is categorical or qualitative by using the function is.factor()
+
+```{r}
+head(print(college_all_ages))
+
+```
+We can see that this returns a logical response like TRUE or FAlSE. We can change the character varibale into factor variable using mutate_if() function. 
+
+```{r}
+is.factor(college_all_ages$major_category)
+
+college_all_ages <- college_all_ages %>% mutate_if(is.character, as.factor)
+```
+
+There are two important fucntions to check levels.   
+
+*  levels() :-- gives us the name of the factors.     
+*  nlevels() :-- gives us the number of factors     
+ 
+ 
+```{r}
+nlevels(college_all_ages$major_category)
+levels(college_all_ages$major_category)
+```
+ mutate_all() and summarise_all take one argument, a function, and apply it to all columns.  
+```{r}
+number_of_levels <- college_all_ages %>%
+	# apply the function nlevels to each column
+    summarise_all(nlevels) %>%
+    # change the dataset from wide to long
+    gather(variable, num_levels)
+number_of_levels
+```
+We have two other functions that can come in handy when exploring a dataset. The first is top_n(x, var), which gets us the first x rows of a dataset based on the value of var. The other is pull(), which allows us to extract a column and take out the name, leaving only the value(s) from the column.
+
+```{r}
+college_all_ages %>%
+  top_n(2, major_category)  %>%
+  pull(major_category)
+```
+```{r}
+college_all_ages %>%
+    # pull CurrentJobTitleSelect
+    pull(major_category) %>%
+    # get the values of the levels
+    levels()
+```
+We use the coord_flip() to flip the axis in the plot and we can also use the fct_infreq() to reorder the factor.
+```{r}
+#without factor reordering
+ggplot(college_all_ages) + 
+  geom_bar(aes(major_category)) + 
+  coord_flip()
+#with factor reordering
+ggplot(college_all_ages) + 
+  geom_bar(aes(fct_infreq(major_category))) + 
+  coord_flip()
+```
+```{r}
+ggplot(college_all_ages) + 
+  geom_bar(aes(fct_rev(fct_infreq(major_category)))) + 
+  coord_flip()
+```
+```{r}
+college_all_ages%>%
+  # remove NAs
+  filter(!is.na(major_category) & !is.na(employed)) %>%
+  # get mean_employed by major_category
+  group_by(major_category) %>%
+  summarise(mean_employed = mean(employed)) %>%
+  # reorder major_category by mean_employed 
+  mutate(major_category = fct_reorder(major_category, mean_employed)) %>%
+  # make a scatterplot of major_category by mean_employed
+  ggplot(aes(x = major_category, y = mean_employed)) + 
+    geom_point() + 
+    coord_flip()
+```
+
+
+## Manipulating Factor Variables
+We can change the names and the orders of the levels using R and we can also collapse some of the factors in one factor. 
+
+```{r}
+multiple_choice_responses <- read.csv("smc_with_js.csv")
+str(multiple_choice_responses)
+```
+
+We can use fct_relevel() function to relevel the factors of the dataset. 
+```{r}
+# Get the levels of WorkInternalVsExternalTools
+multiple_choice_responses <- multiple_choice_responses %>% mutate_if(is.character, as.factor)
+levels(multiple_choice_responses$WorkInternalVsExternalTools)
+# Manually change the order of the levels to go from internal to external, with "Do not know" last 
+mc_responses_reordered <- multiple_choice_responses %>%
+    mutate(WorkInternalVsExternalTools = fct_relevel(WorkInternalVsExternalTools, 
+    "Entirely internal", "More internal than external", 
+    "Approximately half internal and half external", 
+    "More external than internal", "Entirely external", 
+    "Do not know"))
+# Make a bar plot of the responses
+ggplot(mc_responses_reordered, aes (WorkInternalVsExternalTools)) + 
+    geom_bar() + 
+    coord_flip()
+```
+We can use an argument after=value to set the new level after the value level. and we can use after = Inf to set the level to the last
+```{r}
+levels(multiple_choice_responses$FormalEducation)
+multiple_choice_responses %>%
+    # Move "I did not complete any formal education past high school" and "Some college/university study without earning a bachelor's degree" to the front
+    mutate(FormalEducation = fct_relevel(FormalEducation, "I did not complete any formal education past high school", "Some college/university study without earning a bachelor's degree")) %>%
+    # Move "I prefer not to answer" to be the last level.
+    mutate(FormalEducation = fct_relevel(FormalEducation, "I prefer not to answer", after = Inf)) %>%
+    # Move "Doctoral degree" to be after the 5th level
+    mutate(FormalEducation = fct_relevel(FormalEducation, "Doctoral degree", after=5)) %>%
+    # Examine the new level order
+    pull(FormalEducation) %>%
+    levels()
+```
+
+We can also rename the names of the factors by using the function fct_recode(). This doesn't help to order the factors but can only change the name of the factor level specified. 
+
+```{r}
+multiple_choice_responses %>% filter(!is.na(FormalEducation)) %>%
+    # rename the appropriate levels to "High school" and "Some college"
+    mutate(FormalEducation = fct_recode(FormalEducation,
+    "High school" = "I did not complete any formal education past high school", 
+    "Some college" = "Some college/university study without earning a bachelor's degree")) %>%
+    # make a bar plot of FormalEducation
+    ggplot(aes(fct_infreq(FormalEducation))) + 
+    geom_bar() + coord_flip()
+```
+
+We can see that if we use fct_recode() on a level that doesn't exists it will give us an warning message but code still runs. 
+
+We can use fct_collapse() function and make one factor level from a bunch of factor levels.  We can also use the fct_other() and fct_keep().
+Many times, you won't have specific levels you want to change to other or collapse together. Rather, you want to keep the most common levels and put everything else into "other." Especially when there are many levels and most of them rare, this is helpful for displaying your data.
+
+```{r}
+
+multiple_choice_responses %>%
+    # Create new variable, grouped_titles, by collapsing levels in CurrentJobTitleSelect
+    mutate(grouped_titles = fct_collapse(CurrentJobTitleSelect, 
+        "Computer Scientist" = c("Programmer", "Software Developer/Software Engineer"), 
+        "Researcher" = "Scientist/Researcher", 
+        "Data Analyst/Scientist/Engineer" = c("DBA/Database Engineer", "Data Scientist", 
+                                              "Business Analyst", "Data Analyst", 
+                                              "Data Miner", "Predictive Modeler")))%>%
+    # Keep all the new titles and turn every other title into "Other"
+    mutate(grouped_titles = fct_other(grouped_titles, 
+                             keep= c("Computer Scientist", 
+                                     "Researcher", 
+                                     "Data Analyst/Scientist/Engineer"))) %>% 
+    # Get a count of the grouped titles
+   count(grouped_titles)
+```
+
+
+```{r}
+multiple_choice_responses %>%
+  # remove NAs of MLMethodNextYearSelect
+  filter(!is.na(MLMethodNextYearSelect)) %>%
+  # create ml_method, which lumps all those with less than 5% of people into "Other"
+  mutate(ml_method = fct_lump(MLMethodNextYearSelect, prop = .05)) %>%
+  # count the frequency of your new variable, sorted in descending order
+  count(ml_method, sort = TRUE)
+
+
+multiple_choice_responses %>%
+  # remove NAs 
+  filter(!is.na(MLMethodNextYearSelect)) %>%
+  # create ml_method, retaining the 5 most common methods and renaming others "other method" 
+  mutate(ml_method = fct_lump(MLMethodNextYearSelect, n=5, other_level = "other method")) %>%
+  # count the frequency of your new variable, sorted in descending order
+ count(ml_method, sort= TRUE)
+```
+
+
+
+
+
+## Creating Factor Variables
+
+We can use the if_else statement a mutate function:
+```{r}
+college_all_ages %>%
+    # If usefulness is "Not Useful", make 0, else 1 
+    mutate(Agriculture = if_else(major_category == "Agriculture & Natural Resources", "Yes", "No")) %>% count(Agriculture == "Yes")
+```
+
+
+add_count(). add_count() adds a column to the dataset, n, keeping the same number of rows as the original dataset. Just like count(), n defaults to be the number of rows for each group.
+
+```{r}
+iris %>%
+   add_count(Species, wt = Petal.Length) %>%
+   select(Species, Petal.Length, n)
+```
+
+Tricks of ggplot2 :--  
+Change tick labels angle: If the names in the x axis are too long and overlap, we can use the angle of the names to 90 degrees using the theme(axis.text.x = element_text(angle = 90, hjust = 1)). 
+
+```{r}
+iris%>%
+  # remove NAs
+  filter(!is.na(Sepal.Length) & !is.na(Sepal.Width)) %>%
+  # get mean_sepal_length by Species
+  group_by(Species) %>%
+  summarise(mean_sepal_length = mean(Sepal.Length)) %>%
+  # reorder Species by mean_sepal_length
+  mutate(Species = fct_reorder(Species, mean_sepal_length)) %>%
+  # make a scatterplot of Species by mean_sepal_length
+  ggplot(aes(x = Species, y = mean_sepal_length)) + 
+    geom_point() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+ We use labs() to change labels and the scale_y_continous() function to change an axis to percentage.
+
+
+```{r}
+iris%>%
+  # remove NAs
+  filter(!is.na(Sepal.Length) & !is.na(Sepal.Width)) %>%
+  # get mean_sepal_length by Species
+  group_by(Species) %>%
+  summarise(mean_sepal_length = mean(Sepal.Length)) %>%
+  # reorder Species by mean_sepal_length
+  mutate(Species = fct_reorder(Species, mean_sepal_length)) %>%
+  # make a scatterplot of Species by mean_sepal_length
+  ggplot(aes(x = Species, y = mean_sepal_length)) + 
+    geom_point() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) + labs(x= "Species" , y= "The percentage of Sepal Length mean")+ scale_y_continuous(labels = scales::percent)
+```
+
+We can simply use between(Variable, lowest value, highest value) function to filter any variable sin case of between some numbers like Age between 10 and 90. We can use case_when to change variables according to some condition
+```{r}
+multiple_choice_responses %>%
+    # Filter for rows where Age is between 10 and 90
+    filter(between(Age, 10, 90)) %>%
+    # Create the generation variable based on age
+    mutate(generation = case_when(
+    between(Age, 10, 22) ~ "Gen Z", 
+    between(Age, 23, 37) ~ "Gen Y", 
+    between(Age, 38, 52) ~ "Gen X", 
+    between(Age, 53, 71) ~ "Baby Boomer", 
+    between(Age, 72, 90) ~ "Silent"
+    )) %>%
+    # Get a count of how many answers in each generation
+    count(generation)
+```
+
+
+
+## Case Study on Flight Etiquette
+
+Let's load the flight etiquette data first
+```{r}
+flying_etiquette <- read_csv("flying-etiquette.csv")
+summary(flying_etiquette)
+```
+
+
+
+```{r}
+#Changing characters to factors
+flying_etiquette %>%
+    # Change characters to factors
+    mutate_if(is.character, as.factor) %>%
+    # Filter out those who have never flown on a plane
+    filter(`How often do you travel by plane?` != "Never")
+
+```
+```{r}
+#Tidying data
+gathered_data <- flying_etiquette %>%
+    mutate_if(is.character, as.factor) %>%
+    filter(`How often do you travel by plane?` != "Never") %>%
+    # Select columns containing "rude"
+    select(contains("rude")) %>%
+    # Change format from wide to long
+  gather(response_var, value)
+```
+
+
+
+We can use Regex to find instances of general patterns. WE use the str_detect() function. The “.” matches any character. The "*" says match the chararcter before me 0 or more times.\
+
+```{r}
+str_detect("nafis",".")
+str_detect("nafis","f.")
+str_detect("nafis","s.")
+
+```
+To remove anything up to "*" we use str_remove():
+```{r}
+String <- "Economics is my major"
+str_remove(String, ".*my ")
+```
+
+```{r}
+dichotimized_data <- gathered_data %>%
+    mutate(response_var = str_replace(response_var, '.*rude to ', '')) %>%
+    mutate(response_var = str_replace(response_var, 'on a plane', '')) %>%
+	# Remove rows that are NA in the value column
+	filter(!is.na(value)) %>%
+    # Dichotomize the value variable to make a new variable, rude
+    mutate(rude = if_else(value %in% c('No, not rude at all', 'No, not at all rude'), 0, 1))
+```
+
+
+```{r}
+rude_behaviors <- gathered_data %>%
+    mutate(response_var = str_replace(response_var, '.*rude to ', '')) %>%
+    mutate(response_var = str_replace(response_var, 'on a plane', '')) %>%
+	# Remove rows that are NA in the value column
+	filter(!is.na(value)) %>%
+    mutate(rude = if_else(value %in% c("No, not rude at all", "No, not at all rude"), 0, 1)) %>%
+    # Group by response_var
+    group_by(response_var) %>%
+    # Create perc_rude, the percent considering each behavior rude
+    summarise(perc_rude = mean(rude))
+
+rude_behaviors
+```
+
+
+Summarizing Data :--  
+We can use labs for naming the axis of our plot. We can do it using labs(x="title for x axis , y="label for y axis") Moreover we can use title=" " , subtitle= " ", caption= " " these arguments for title , subtitle and caption
+
+```{r}
+ggplot(mtcars, aes(x=disp, y=mpg)) + geom_point() + labs(x="disp", y="mpg", title = "MPGvsDISP", subtitle = "This is a subtitle" , caption = "This is a caption")
+```
+
+We can use geom_text() function to label the bar plot 
+
+```{r}
+iris <-iris %>% mutate(mean_Sepal= mean(Sepal.Width))
+ggplot(iris, aes(Species,Sepal.Length)) + geom_col() + geom_text(aes(label= round(mean_Sepal), y= mean_Sepal+340 )) + coord_flip()
+```
+```{r}
+initial_plot <- rude_behaviors %>%
+	# reorder response_var by perc_rude
+	mutate(response_var = fct_reorder(response_var, perc_rude)) %>%
+	# make a bar plot of perc_rude by response_var
+	ggplot(aes(x = response_var, y = perc_rude)) + 
+    geom_col() 
+initial_plot
+```
+
+Now we have created an initial plot and we can change it using the functions we have learned 
+```{r}
+titled_plot <- initial_plot + 
+    # Add the title, subtitle, and caption
+    labs(title = "Hell Is Other People In A Pressurized Metal Tube",
+        subtitle = "Percentage of 874 air-passenger respondents who said action is very or somewhat rude",
+         caption = "Source: SurveyMonkey Audience", 
+         # Remove the x- and y-axis labels
+         x = "", 
+        y = "") 
+
+titled_plot
+```
+
+When the labels for our x-axis run into each other, we have two main choices: change the labels to be vertical instead of horizontal or flip the axes. We can use coord_flip() to flip the axes and we can use axis.text.x= element_blank() inside the theme() function to manually vanish the x axis label we can also do it with the ticks.
+```{r}
+flipped_plot <- titled_plot + 
+    # Flip the axes
+    coord_flip() + 
+    # Remove the x-axis ticks and labels
+    theme(axis.text.x = element_blank(), 
+        axis.ticks.x = element_blank())
+flipped_plot
+```
+We can use position_dodge() to move the text label easily.
+```{r}
+flipped_plot + 
+    geom_text(aes(label = round(perc_rude*100), 
+                  y = perc_rude + .03), 
+              position = position_dodge(0.9),
+              vjust = 1)
+```
+
+
+
+
+
+
+
+
+
+
+
+

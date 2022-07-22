@@ -1,0 +1,123 @@
+# Data Manipulation with dplyr
+
+<https://learn.datacamp.com/courses/data-manipulation-with-dplyr>
+
+```{r}
+library(dplyr)
+library(readr)
+library(tidyverse)
+library(tidycensus)
+library(gapminder)
+```
+
+
+##  Transforming Data with dplyr
+We can use a lot of verbs from dplyr to select rows , columns and we can also filter the data and we can also arrange the data in an ascending or a descending order. 
+The functions are :--  select(),filter(),arrange(),mutate()
+
+We can use select() function to select particular variables from the data
+```{r}
+head(gapminder)
+T1 <- gapminder %>% select(country,year,continent,pop,lifeExp)
+```
+We can use the filter() function and use a condition as an argument and filter our dataset 
+```{r}
+filtered <- gapminder %>% filter(year==1952)
+head(filtered)
+```
+We can use arrange() function and order the datset according to an ascending order we can also use desc() as an argument in the arrange() function and order it in a descending order
+```{r}
+arranged <- filtered %>% arrange(desc(gdpPercap))
+head(arranged)
+```
+We can use mutate() to create a new variables or we can change an existing one 
+
+```{r}
+T1 %>% mutate(total_lifeExp_inMill = (lifeExp * pop)/1000000) %>% arrange(desc(total_lifeExp_inMill))
+head(T1)
+```
+
+
+
+
+## Aggregating Data
+We can use the count() function to count the number of observations. We can use count and sort together to count and then arrange. We can use the sort=TRUE argument to sort it and we can also use the wt= arguamnt to wight it according to a certain variable
+
+```{r}
+T1 %>% count(continent, sort=TRUE, wt= mean(lifeExp))
+```
+
+We can then use summarize() to summarize the data in groups by a specific variable
+
+```{r}
+T1 %>% 
+  group_by(country) %>% 
+  summarize(mean_lifeExp = mean(lifeExp)) %>% 
+  arrange(desc(mean_lifeExp))
+```
+We can use the top_n() fucntion for counting the most extreme observation
+```{r}
+T1 %>% group_by(continent) %>% top_n(1,pop)
+```
+
+
+## Selecting and Transforming Data
+We can use select() to select a range of columns or subtract a column.
+
+We can use the contains arguement within select to get columns that contain a certain string. Other select helpers include starts_with(), ends_with(), last_col(), contains()
+```{r}
+ gapminder %>% select(country, -lifeExp, starts_with("Cont"),ends_with("op"))
+
+```
+We can use the rename() to rename a column name. We can also rename a column name inside the select() fucntion.
+```{r}
+ gapminder %>% select(country, -lifeExp, starts_with("Cont"),ends_with("op")) %>% rename(population=pop)
+
+```
+```{r}
+ gapminder %>% select(country, -lifeExp, starts_with("Cont"),ends_with("op"), population =pop)
+
+```
+
+Transmute verb:
+
+Transmute is a combination of select and mutate. It returns a subset of columns that are transformed and changed.
+```{r}
+T1 %>%
+  transmute(country, continent, pop_inMillion = pop/1000000)
+```
+
+
+We should know that select() and rename() these verbs can't cahnge any variable while the mutate() and the transmute() can change the variables.
+
+
+## Case Study: The babynames Dataset
+
+We can filter for multiple observations or names using the filter(variable %in% c("",""))
+```{r}
+T1 %>% filter(continent %in% c("Ocenia","Asia"))
+```
+We can use ungroup() to ungroup the observations.
+```{r}
+T1 %>% filter(year==1952) %>% group_by(continent) %>% mutate(mean_lifeExp = mean(lifeExp)) %>% ungroup() %>% mutate(fraction = lifeExp / mean_lifeExp)
+```
+Window Function:
+
+A window function takes a vector and returns another vector of the same length. We can use the lag() function.
+```{r}
+v <- c(10,30,55,123)
+v
+lag(v)
+```
+
+```{r}
+gapminder %>% 
+  select(country, year, pop) %>%
+  filter(country == "India") %>%
+  arrange(year) %>%
+  mutate (difference_in_pop = pop - lag(pop)) %>%
+  arrange((year))
+```
+
+
+

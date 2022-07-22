@@ -1,0 +1,471 @@
+# Web Scraping in R
+
+<https://learn.datacamp.com/courses/web-scraping-in-r>
+
+```{r}
+library(rvest)
+library(xml2)
+library(dplyr)
+library(httr)
+library(purrr)
+```
+
+
+
+## Introduction to HTML and Web Scraping
+```{r}
+html_excerpt_raw <- '
+<html> 
+  <body> 
+    <h1>Web scraping is cool</h1>
+    <p>It involves writing code – be it R or Python.</p>
+    <p><a href="https://datacamp.com">DataCamp</a> 
+		has courses on it.</p>
+  </body> 
+</html>'
+# Turn the raw excerpt into an HTML document R understands
+html_excerpt <- read_html(html_excerpt_raw)
+html_excerpt
+```
+We can use the xml_structure() function to get a better overview of the tag hierarchy of the HTML excerpt.
+```{r}
+xml_structure(html_excerpt)
+```
+We can extract certain nodes from a html using the html_node(‘name of element(children)’) function:
+```{r}
+html_list_raw <- '
+<html> 
+  <body> 
+    <ol>
+  <li>Mix flour, baking powder, sugar, and salt.</li>
+  <li>In another bowl, mix eggs, milk, and oil.</li>
+  <li>Stir both mixtures together.</li>
+  <li>Fill muffin tray 3/4 full.</li>
+  <li>Bake for 20 minutes.</li>
+</ol>
+  </body> 
+</html>'
+# Read in the corresponding HTML string
+html_list <- read_html(html_list_raw)
+# Extract the ol node
+ol_node <- html_list %>% 
+	html_node('ol')
+# Extract and print all the children from ol_node
+ol_node %>% 
+	html_children()
+```
+We can parse the HRTML links into an R data frame. You’ll use tibble(), a function from the Tidyverse, for that. tibble() is basically a trimmed down version of data.frame(), which we certainly already know. Just like data.frame(), we specify column names and data as pairs of column names and values, like so:
+
+my_tibble <- tibble( column_name_1 = value_1, column_name_2 = value_2, … )
+```{r}
+hyperlink_raw_html <- '
+<html> 
+  <body> 
+   <ul> Favourite sports
+<li><a href="http://en.wikipedia.org/wiki/Football">Football</a></li>
+<li><a href="http://en.wikipedia.org/wiki/Tennis">Tennis</a></li>
+<li><a href="http://en.wikipedia.org/wiki/Rugby_football">Rugby</a></li>
+</ul>
+  </body> 
+</html>'
+
+# Extract all the a nodes from the bulleted list
+links <- hyperlink_raw_html %>% 
+  read_html() %>%
+  html_nodes('li a') # 'ul a' is also correct!
+
+# Extract the needed values for the data frame
+domain_value = links %>% html_attr('href')
+name_value = links %>% html_text()
+
+# Construct a data frame
+link_df <- tibble(
+  domain = domain_value,
+  name = name_value
+)
+
+link_df
+```
+
+```{r}
+table_html <- '<table>
+<tr>
+<th>Name</th><th>Profession</th><th>Age</th><th>Country</th>
+</tr>
+<tr>
+<td>Dillon Arroyo</td><td>Carpenter</td> <td> 54 </td><td>UK</td>
+</tr>
+<tr>
+<td>Rebecca Douglas</td><td>Developer</td><td>32</td><td>USA</td>
+</tr>
+</table>'
+
+html<- read_html(table_html)
+
+html %>% html_table()
+```
+Turn a table into a data frame with html_table()
+
+If a table has a header row (with th elements) and no gaps, scraping it is straightforward, as with the following table (having ID “clean”):
+
+```
+# Extract the "clean" table into a data frame 
+mountains <- mountains_html %>% 
+  html_node("table#clean") %>% 
+  html_table()
+
+mountains
+```
+
+
+
+## Navigation and Selection with CSS
+ CSS can be used to style a web page. In the most basic form, this happens via type selectors, where styles are defined for and applied to all HTML elements of a certain type. In turn, you can also use type selectors to scrape pages for specific HTML elements.
+
+We can also combine multiple type selectors via a comma, i.e. with html_nodes("type1, type2"). This selects all elements that have type1 or type2.
+```{r}
+language_html_raw<- "<html> 
+  <body> 
+    <div>Python is perfect for programming.</div>
+    <p>Still, R might be better suited for data analysis.</p>
+    <small>(And has prettier charts, too.)</small>
+  </body> 
+</html>"
+
+# Read in the HTML
+languages_html <- read_html(language_html_raw)
+# Select the div and p tags and print their text
+languages_html %>%
+	html_nodes('div, p') %>%
+	html_text()
+```
+CLASSES AND ID’s
+
+We can use classes and IDs instead of using all the elements. For example: To find the shortest possible selector to select the first div in structured_html pf thje following html code :
+```{r}
+structured_html_raw<- "<html>
+  <body>
+    <div id = 'first'>
+      <h1 class = 'big'>Joe Biden</h1>
+      <p class = 'first blue'>Democrat</p>
+      <p class = 'second blue'>Male</p>
+    </div>
+    <div id = 'second'>...</div>
+    <div id = 'third'>
+      <h1 class = 'big'>Donald Trump</h1>
+      <p class = 'first red'>Republican</p>
+      <p class = 'second red'>Male</p>
+    </div>
+  </body>
+</html>"
+structured_html <- read_html(structured_html_raw)
+# Select the first div
+structured_html %>%
+  html_nodes('#first')
+```
+```{r}
+nested_html_raw <- "<html>
+  <body>
+    <div>
+      <p class = 'text'>A sophisticated text [...]</p>
+      <p class = 'text'>Another paragraph following [...]</p>
+      <p class = 'text'>Author: T.G.</p>
+    </div>
+    <p>Copyright: DC</p>
+  </body>
+</html>"
+
+nested_html <- read_html(nested_html_raw)
+# Select the last child of each p group
+nested_html %>%
+	html_nodes('p:last-child')
+```
+
+```{r}
+# This time for real: Select only the last node of the p's wrapped by the div
+nested_html  %>% 
+	html_nodes('p.text:last-child')
+```
+
+CSS combinators:
+
+Select direct descendants with the child combinator By now, you surely know how to select elements by type, class, or ID. However, there are cases where these selectors won’t work, for example, if you only want to extract direct descendants of the top ul element. For that, you will use the child combinator (>) introduced in the video.
+
+Here, your goal is to scrape a list (contained in the languages_html document) of all mentioned computer languages, but without the accompanying information in the sub-bullets:
+
+```{r}
+languages_html_raw <- " <ul id = 'languages'>
+    <li>SQL</li>
+    <ul>    
+      <li>Databases</li>
+      <li>Query Language</li>
+    </ul>
+    <li>R</li>
+    <ul>
+      <li>Collection</li>
+      <li>Analysis</li>
+      <li>Visualization</li>
+    </ul>
+    <li>Python</li>
+  </ul>"
+
+languages_html <- read_html(languages_html_raw)
+
+# Extract the text of all list elements
+languages_html %>% 
+	html_nodes('li') %>% 
+	html_text()
+
+# Extract only the text of the computer languages (without the sub lists)
+languages_html %>% 
+	html_nodes('ul#languages > li') %>% 
+	html_text()
+```
+```{r}
+complicated_html_raw <- '<html>
+  <body>
+    <div class="first section">
+      A text with a <a href="#">link</a>.
+    </div>
+    <div class="second section">
+      Some text with <a href="#">another link</a>.
+      <div class="first paragraph">Some text.</div>
+      <div class="second paragraph">Some more text.
+        <div>...</div>
+      </div>
+    </div>
+  </body>
+</html>'
+
+complicated_html <- read_html(complicated_html_raw)
+# Select the three divs with a simple selector
+complicated_html %>%
+	html_nodes('div div')
+
+```
+
+
+## Advanced Selection with XPATH
+XPath is defined as XML path. It is a syntax or language for finding any element on the web page using the XML path expression.
+
+Example : Your goal is to extract the precipitation reading from this weather station. Unfortunately, it can’t be directly referenced through an ID.
+```{r}
+weather_html_raw <- "<html>
+  <body>
+    <div id = 'first'>
+      <h1 class = 'big'>Berlin Weather Station</h1>
+      <p class = 'first'>Temperature: 20°C</p>
+      <p class = 'second'>Humidity: 45%</p>
+    </div>
+    <div id = 'second'>...</div>
+    <div id = 'third'>
+      <p class = 'first'>Sunshine: 5hrs</p>
+      <p class = 'second'>Precipitation: 0mm</p>
+      <p class = 'third'>Snowfall: 0mm</p>
+    </div>
+  </body>
+</html>"
+
+weather_html <- read_html(weather_html_raw)
+
+# Select all p elements
+weather_html %>%
+	html_nodes(xpath = '//p')
+```
+
+```{r}
+# Select p elements with the second class
+weather_html %>%
+	html_nodes(xpath = '//p[@class = "second"]')
+```
+
+```{r}
+# Select p elements that are children of "#third"
+weather_html %>%
+	html_nodes(xpath = '//*[@id = "third"]/p')
+```
+
+```{r}
+# Select p elements with class "second" that are children of "#third"
+weather_html %>%
+	html_nodes(xpath = '//*[@id = "third"]/p[@class = "second"]')
+```
+
+With XPATH, something that's not possible with CSS can be done: selecting elements based on the properties of their descendants. For this, predicates may be used. Here, your eventual goal is to select only div elements that enclose a p element with the third class. For that, you'll need to select only the div that matches a certain predicate — having the respective descendant (it needn't be a direct child).
+
+```{r}
+# Select all divs
+weather_html %>% 
+  html_nodes(xpath = '//div')
+```
+```{r}
+# Select all divs with p descendants
+weather_html %>% 
+  html_nodes(xpath = '//div[p]')
+```
+```{r}
+# Select all divs with p descendants having the "third" class
+weather_html %>% 
+  html_nodes(xpath = '//div[p[@class = "third"]]')
+```
+
+
+
+Extract nodes based on the number of their children
+
+ The XPATH count() function can be used within a predicate to narrow down a selection to these nodes that match a certain children count. This is especially helpful if your scraper depends on some nodes having a minimum amount of children.
+ 
+```{r}
+forecast_html_raw <- "<html>
+  <body>
+    <div>
+  <h1>Tomorrow</h1>
+</div>
+<div>
+  <h2>Berlin</h2>
+  <p>Temperature: 20°C</p>
+  <p>Humidity: 50%</p>
+</div>
+<div>
+  <h2>London</h2>
+  <p>Temperature: 15°C</p>
+</div>
+<div>
+  <h2>Zurich</h2>
+  <p>Temperature: 22°C</p>
+  <p>Humidity: 60%</p>
+</div>
+  </body>
+</html>"
+
+forecast_html <- read_html(forecast_html_raw)
+# Select only divs with one header and at least two paragraphs
+forecast_html %>%
+	html_nodes(xpath = '//div[count(h2) = 1 and count(p) > 1]')
+```
+ 
+ 
+ XPATH text() function:
+
+Sometimes, you only want to select text that’s a direct descendant of a parent element. In the following example table, however, the name of the role itself is wrapped in an em tag. But its function, e.g. “Voice”, is also contained in the same td element as the em part, which is not optimal for querying the data.
+
+
+```{r}
+roles_html_raw <- '<table>
+ <tr>
+  <th>Actor</th>
+  <th>Role</th>
+ </tr>
+ <tr>
+  <td class = "actor">Jayden Carpenter</td>
+  <td class = "role"><em>Mickey Mouse</em> (Voice)</td>
+ </tr>
+
+</table>'
+
+roles_html <- read_html(roles_html_raw)
+
+# Extract the data frame from the table using a known function from rvest
+roles <- roles_html %>% 
+  html_node(xpath = "//table") %>% 
+  html_table()
+# Print the contents of the role data frame
+roles
+
+
+```
+```{r}
+# Extract the actors in the cells having class "actor"
+actors <- roles_html %>% 
+  html_nodes(xpath = '//table//td[@class = "actor"]') %>%
+  html_text()
+actors
+
+# Extract the roles in the cells having class "role"
+roles <- roles_html %>% 
+  html_nodes(xpath = '//table//td[@class = "role"]/em') %>% 
+  html_text()
+roles
+```
+
+ 
+## Scraping Best Practices
+read_html() actually issues an HTTP GET request if provided with a URL, like in this case.
+
+The goal of this exercise is to replicate the same query without read_html(), but with httr methods instead.
+
+Note: Usually rvest does the job, but if you want to customize requests like you'll be shown later in this chapter, you'll need to know the httr way.
+
+For a little repetition, you'll also translate the CSS selector used in html_nodes() into an XPATH query.
+
+
+```{r}
+# Get the HTML document from Wikipedia using httr
+wikipedia_response <- GET('https://en.wikipedia.org/wiki/Varigotti')
+# Parse the response into an HTML doc
+wikipedia_page <- content(wikipedia_response)
+# Check the status code of the response
+status_code(wikipedia_response)
+
+
+# Extract the altitude with XPATH
+wikipedia_page %>% 
+	html_nodes(xpath = '//table//tr[position() = 9]/td') %>% 
+	html_text()
+```
+```{r}
+response <- GET('https://en.wikipedia.org/wiki/Varigott')
+# Print status code of inexistent page
+status_code(response)
+```
+
+
+**As you see, the Wikipedia web server returned a 404 error, indicating that the page you requested does not exist.**
+
+Check out your user agent
+
+Normally when sending out requests, you don't get to see the headers that accompany them.
+
+The test platform httpbin.org has got you covered: it has a special address that returns the headers of each request that it reaches. This address is: https://httpbin.org/headers.
+
+If you open this URL in your browser, you get JSON* data in return that tells you the headers of the browser's request. You might see something like Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:80.0) Gecko/20100101 Firefox/80.0 for User-Agent, based on your current browser and operating system. Give it a try and then return to this exercise!
+
+*JavaScript Object Notation – a popular data exchange format
+
+```{r}
+# Access https://httpbin.org/headers with httr
+response <- GET('https://httpbin.org/headers')
+# Print its content
+content(response)
+```
+
+Actually, there's also a httpbin.org address that only returns the current user agent (https://httpbin.org/user-agent). You'll use this for the current exercise, where you'll manipulate your own user agent to turn it into something meaningful (for the owners of the website you're scraping, that is).
+
+there are two ways of customizing your user agent when using httr for fetching web resources:
+
+Locally, i.e. as an argument to the current request method.
+Globally via set_config().
+
+```{r}
+# Globally set the user agent to "A request from a DataCamp course on scraping"
+set_config(add_headers(`User-Agent` = "A request from a DataCamp course on scraping"))
+# Pass a custom user agent to a GET query to the mentioned URL
+response <- GET('https://httpbin.org/user-agent')
+# Print the response content
+content(response)
+```
+
+In order not to stress Wikipedia too much, we can apply throttling using the slowly() function. After each call to a Wikipedia page, your program should wait a small amount of time. Three pages of Wikipedia might not be that much, but the principle holds for any amount of scraping: be gentle and add wait time between requests.
+
+```{r}
+throttled_read_html <- slowly(~ read_html("https://wikipedia.org"),
+                    rate = rate_delay(0.5))
+
+for(i in c(1, 2, 3)){
+  throttled_read_html("https://google.com") %>% 
+      html_node("title") %>% 
+      html_text() %>%
+    print()
+}      
+```
+

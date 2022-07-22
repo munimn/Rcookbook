@@ -1,0 +1,299 @@
+# Joining Data in SQL
+
+<https://learn.datacamp.com/courses/joining-data-in-postgresql>
+
+```{r}
+## Load all packages used in this chapter
+library(RSQLite)
+```
+
+```{r}
+con <- dbConnect(SQLite(), "chinook.db")
+```
+## Introduction to joins
+We can join two or more data tables together. There are different types of join. 
+
+We can Left join two tables when we want to keep everything from the first table and the ones which match with the first table from the second table.
+We can inner join when we want to join everything that is in both of the data table. 
+```{sql connection= "con"}
+SELECT *
+FROM tracks
+  INNER JOIN playlist_track
+    ON tracks.Trackid = playlist_track.Trackid
+    LIMIT 10;
+```
+We can also SELECT fields as an alias and then join.
+```{sql connection= "con"}
+
+SELECT tracks.Trackid AS Musicid, playlist_track.Trackid AS music, Playlistid
+FROM tracks
+  INNER JOIN playlist_track
+    ON tracks.Trackid = playlist_track.Trackid
+    LIMIT 10;
+```
+We can also do inner join multiple times in a single query using the code below:--  
+
+```
+SELECT *
+FROM left_table
+  INNER JOIN right_table
+    ON left_table.id = right_table.id
+  INNER JOIN another_table
+    ON left_table.id = another_table.id;
+```
+```{sql connection= "con"}
+SELECT  *
+FROM tracks AS t
+  INNER JOIN playlist_track AS pt
+    ON t.Trackid = pt.Trackid
+    INNER JOIN invoice_items AS inv
+    ON t.Trackid = inv.Trackid
+    LIMIT 10;
+```
+
+We can also Join using the `USING` keyword.
+If we have the same key variable name for both the dataframes we can use the USING keyword 
+```{sql connection= "con"}
+SELECT Trackid,  Name
+FROM tracks
+  INNER JOIN playlist_track
+    USING(Trackid)
+```
+Often it's useful to look at a numerical field not as raw data, but instead as being in different categories or groups.
+
+You can use CASE with WHEN, THEN, ELSE, and END to define a new grouping field.
+
+```{sql connection= "con"}
+SELECT Name, Milliseconds, Bytes,
+    -- First case
+    CASE WHEN Milliseconds> 200000000 THEN 'large'
+        -- Second case
+        WHEN Milliseconds > 350000 THEN 'medium'
+        -- Else clause + end
+        ELSE 'small' END
+        -- Alias name
+        AS msgroup
+-- From table
+FROM tracks
+Limit 10;
+```
+## Outer joins and cross joins
+
+We can Left join two tables when we want to keep everything from the first table and the ones which match with the first table from the second table.
+```{sql connection= "con"}
+SELECT  *
+FROM tracks AS t
+  LEFT JOIN playlist_track AS pt
+    ON t.Trackid = pt.Trackid
+    
+    LIMIT 10;
+```
+```{sql connection= "con"}
+SELECT  *
+FROM artists AS a
+  LEFT JOIN albums AS al
+    ON a.Artistid = al.Artistid
+    GROUP BY Name
+    LIMIT 10;
+```
+Right Join : Right joins aren't as common as left joins. One reason why is that you can always write a right join as a left join.
+```
+#It said Right joins are not currently avialable 
+SELECT  *
+FROM artists AS a
+  RIGHT JOIN albums AS al
+    ON a.Artistid = al.Artistid
+    GROUP BY Name
+    LIMIT 10;
+```
+
+Full Join:
+
+We use full join when we want everything in both the data frames.
+
+```
+#It said FULL OUTER joins are not currently avialable 
+SELECT  *
+FROM playlists 
+  FULL JOIN playlist_track
+    USING(PlaylistId)
+    LIMIT 10;
+```
+Cross Join:
+
+The CROSS JOIN is used to generate a paired combination of each row of the first table with each row of the second table.
+
+```{sql connection= "con"}
+SELECT  *
+FROM artists AS a
+  CROSS JOIN albums AS al
+    ON a.Artistid = al.Artistid
+LIMIT 10;
+```
+
+## Set theory clauses
+The UNION, EXCEPT and INTERSECT operators of SQL enable you to combine more than one SELECT statement to form a single result set. The UNION operator returns all rows. The INTERSECT operator returns all rows that are in both result sets. The EXCEPT operator returns the rows that are only in the first result set but not in the second.
+
+Union
+
+Union represents merging two data frames which include all records in both tables without duplicates.
+```{sql connection= "con"}
+-- Select fields from playlists table
+SELECT *
+  -- From playlists table
+  FROM playlists
+    -- Set theory clause
+    UNION
+-- Select fields from playlist track
+SELECT *
+  -- From artists table
+  FROM playlist_track
+-- Order by name
+ORDER BY Name
+Limit 10;
+```
+Union All
+
+Union represents merging two data frames which include all records in both tables with duplicates.
+
+```{sql connection= "con"}
+-- Select fields from playlists table
+SELECT *
+  -- From playlists table
+  FROM playlists
+    -- Set theory clause
+    UNION ALL
+-- Select fields from artists
+SELECT *
+  -- From artists table
+  FROM artists
+-- Order by name
+ORDER BY Name
+Limit 10;
+```
+Intersect
+
+UNION ALL will extract all records from two tables, while INTERSECT will only return records that both tables have in common. In this exercise, you will create a similar query as before, however, this time you will look at the records in common for country code and year for the economies and populations tables.
+
+```{sql connection= "con"}
+-- Select fields from playlists table
+SELECT *
+  -- From playlists table
+  FROM playlists
+    -- Set theory clause
+    INTERSECT
+-- Select fields from artists
+SELECT *
+  -- From artists table
+  FROM artists
+-- Order by name
+ORDER BY Name
+Limit 10;
+```
+
+AS we can see that it returned 0 rows as it has nothing in common
+
+```{sql connection= "con"}
+
+SELECT Name
+  FROM artists
+    INTERSECT
+SELECT Title
+  FROM albums
+ORDER BY Name
+```
+Now we can see that These albums were names as the artists name
+
+Except
+
+It finds the rows which are not in the right table but in the left one.
+```{sql connection= "con"}
+
+SELECT Name
+  FROM artists
+    EXCEPT
+SELECT Title
+  FROM albums
+ORDER BY Name
+```
+Semi Join and Anti Join
+
+Semi Join : A semi-join is a join between two sets of data (tables) where rows from the first set are returned, based on the presence or absence of at least one matching row in the other set.
+```{sql connection= "con"}
+
+-- Query from step 2
+SELECT DISTINCT Title
+  FROM albums
+-- Where in statement
+WHERE Title IN
+  -- Query from step 1
+  -- Subquery
+  (SELECT Name
+   FROM artists
+   WHERE Name = "Aquaman")
+
+```
+
+Anti Join : Anti-join between two tables returns rows from the first table where no matches are found in the second table. It is opposite of a semi-join. An anti-join returns one copy of each row in the first table for which no match is found. Anti-joins are written using the NOT EXISTS or NOT IN constructs.
+```
+-- 3. Select fields
+SELECT code, name
+  -- 4. From Countries
+  FROM countries
+  -- 5. Where continent is Oceania
+  WHERE continent = 'Oceania'
+    -- 1. And code not in
+    AND code NOT IN
+    -- 2. Subquery
+    (SELECT code
+     FROM currencies);
+```
+
+
+## Subqueries
+Subqueries are queries inside queries or nested queries.
+
+Subqueries inside SELECT:
+
+```{sql connection= "con"}
+SELECT *
+FROM invoices
+WHERE Total>
+
+(SELECT MAX(Total)
+FROM invoices
+WHERE BillingCountry=="USA")
+LIMIT 10;
+```
+
+```{sql connection= "con"}
+SELECT *
+FROM invoices
+WHERE Total>
+
+(SELECT AVG(Total)
+FROM invoices
+WHERE BillingCountry=="USA")
+ORDER BY Total
+LIMIT 10;
+```
+Subqueries inside FROM:
+
+```{sql connection= "con"}
+SELECT Total, subquery.lang_num
+  FROM invoices,
+  	(SELECT UnitPrice, COUNT(*) AS lang_num
+  	 FROM invoice_items
+  	 GROUP BY UnitPrice) AS subquery
+  WHERE invoices.Total = subquery.UnitPrice
+ORDER BY lang_num DESC;
+LIMIT 10;
+```
+So there are total 59 rows where invoice just had one item
+
+
+<style>
+.book .book-body .page-wrapper .page-inner {
+  max-width: 90%;
+}
+</style>

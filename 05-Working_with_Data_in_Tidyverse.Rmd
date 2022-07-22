@@ -1,0 +1,333 @@
+# Working with Data in the Tidyverse
+
+<https://learn.datacamp.com/courses/working-with-data-in-the-tidyverse>
+
+```{r}
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(skimr)
+```
+
+
+## Explore your data
+Importing the data into R:--  
+We have to know how to import a csv file in r we can do that using read.csv("filename.csv").  
+Rectangular Data : Columns represent variables while rows represent observations. The readr package is for reading rectangular package into r.  
+The read_csv() function also has an na argument, which allows you to specify value(s) that represent missing values in your data. The default values for the na argument are c("“,”NA“), so both are recoded as missing (NA) in R. When you read in data, you can add additional values like the string”UNKNOWN" to a vector of missing values using the c() function to combine multiple values into a single vector. There is also another argument called skip. Using ther skip argument we can skip some of the roes of the data while importing it in the R. 
+
+```{r}
+
+
+#Edit to add list of missing values
+bakeoff <- read_csv("https://assets.datacamp.com/production/repositories/1613/datasets/53cf6583aa659942b787897319a1ac053cbcfa5a/bakeoff.csv")
+                   
+
+
+```
+KNOW YOUR DATA -
+
+We can use glimpse(), summary(), str(), and skim() to get a hold of the data and to see the overview of it. The skim() is in the library skimr. 
+```{r}
+skim(bakeoff)
+summary(bakeoff)
+```
+
+We can also use skim after the pipe function. like this:--  
+
+```{r}
+bakeoff %>% filter(!is.na(us_season)) %>% skim()
+```
+
+
+Count and Distinct : 
+
+We can count the number of observations per database by using one or two variables. We can do thatn with count() function. We can also see the results of a distinct variable by using distinct() . The count function takes an argument called sort. It might be TRUE or FALSE. 
+```{r}
+bakeoff %>% distinct(result)
+
+#Using count to see the number of observations
+bakers_by_series <- bakeoff %>% count(series, baker, sort=TRUE)
+bakers_by_series
+```
+
+## Tame your data
+Type casting or changing the type of a variable or an entire column is really important in data handling. Changing types of variable :--  
+We can do it using parse_number(). This function gets only the number from a string anf changes the type to number. 
+For an entire column we use col_number() 
+In this way we can also parse date and also other variables. parse_date() takes an argument which is format. as well as col_date takes this argument to fix the format of the date we are parsing. 
+
+```{r}
+parse_date("17 August 2010", format = "%d %B %Y")
+```
+
+Sometimes we might get error parsing a column it might be because of some NA values in the dataset we can get rid of these or we can identify the rows with these problem using the function problems().
+```{r}
+#Getting parsing problems and viewing them
+desserts <- read_csv("desserts.csv",
+                      col_types = cols(
+           			   uk_airdate = col_date(format = "%d %B %Y"),
+                       technical = col_number()
+                     )                    
+                    )
+problems(desserts)
+
+#Getting rid of the problems using na=c()
+desserts <- read_csv("desserts.csv",
+                      col_types = cols(
+                        uk_airdate = col_date(format = "%d %B %Y"),
+                        technical = col_number()
+                      ),
+                       na = c("", "NA", "N/A") 
+                     )
+```
+
+
+You can use parse_factor() to parse variables and col_factor() to cast columns as categorical. Both functions have a levels argument that is used to specify the possible values for the factors. When levels is set to NULL, the possible values will be inferred from the unique values in the dataset. Alternatively, you can pass a list of possible values.
+
+```{r}
+# Cast result a factor
+desserts <- read_csv("desserts.csv", 
+                     na = c("", "NA", "N/A"),
+                     col_types = cols(
+                       uk_airdate = col_date(format = "%d %B %Y"),
+                       technical = col_number(),                       
+                       result = col_factor(levels = NULL)
+                     )
+                    )
+                    
+# Glimpse to view
+glimpse(desserts)
+```
+
+Recode Values:
+
+We can uyse the recode() function to change the names of observation for each variables(columns).
+
+Remember that the arguments of recode() are the variable that you want to recode, and then an expression of the form old_value = new_value. recode() is most useful when used inside a mutate() to create a new variable or reassign the old one.
+
+For recoding a numerical value we have to use backticks ` ` and we can recode the rest of other like .default = new_value. Moreover we can use recode_factor to make the variable type to change into factor type
+```{r}
+desserts_2 <- desserts %>% 
+  mutate(nut = recode(signature_nut, "filbert" = "hazelnut", 
+                           "no nut" = NA_character_))
+desserts_2 %>% 
+    count(nut, sort = TRUE)
+# recoding numericals
+desserts <- desserts %>% 
+  mutate(tech_win = recode_factor(technical, `1` = 1,
+                           .default = 0))
+desserts %>% 
+  count(technical == 1, tech_win)
+```
+Select variable:--  
+We can select a column very easily and also get rid of a column. We use the select() function to do that. The select function take column names as arguments and also we can select all the columns by setting an argument as everything(). We can use **-** and put a column name to get rid of it. We can also get rid of the rows that starts or ends with a specific string or character we can use the argument starts_with() or ends_with() for that. 
+
+```{r}
+desserts %>% select(us_airdate, everything(), -ends_with("chocolate")) 
+```
+```{r}
+ratings <- read_csv("02.03_messy_ratings.csv")
+skim(ratings)
+```
+
+```{r}
+# Move channel to front and drop 7-/28-day episode ratings
+ratings %>% 
+  select(channel, everything(), -ends_with("day"))
+```
+
+Renaming Variables:
+
+The first step to taming variable names is to use the janitor package. using the following code:
+
+```{r}
+library(janitor)
+```
+
+```{r}
+viewers_7day <- ratings %>% 
+    select(viewers_7day_ = ends_with("7day"),
+        everything(),-ends_with("28day")
+        )
+```
+
+We can also change the names to all uppercase or lowercase like this :--  
+```{r}
+name <- desserts %>% clean_names("upper_camel")
+name
+```
+
+
+## Tidy your data
+
+WE need to make sure that the data is tidy. Each column should have a separate variable and each observation should be a row.
+
+gather() function:
+
+We can use gather() to collapse multiple columns into two columns. We ned a key argument and a value argument in the gather function whhich are the new two columns of our data. We have to chose the key and the value wisely as it can make sense. We can use factor_key=TRUE to make the key column as a factor variables and also using na.rm = TRUE makes the NA rows go away. 
+```{r}
+ratings2 <- read_csv("messy_ratings.csv",col_types = cols(
+                    series = col_factor(levels = NULL)
+                    ))
+tidy_ratings <- ratings2 %>% 
+    # Gather and convert episode to factor
+	gather(key = "episode", value = "viewers_7day", -series, 
+           factor_key = TRUE, na.rm = TRUE) %>%
+	# Sort in ascending order by series and episode
+    arrange(series, episode) %>% 
+	# Create new variable using row_number()
+    mutate(episode_count = row_number())
+
+# Plot viewers by episode and series
+ggplot(tidy_ratings, aes(x = episode_count, 
+                y = viewers_7day, 
+                fill= series)) +
+    geom_col()
+```
+
+separate() function:
+
+We can use the separate() function to separate a column into 2. The separate function takes two argument the first argument is the col= "" where we put the column name which we want to separate and then the into = c() argument where we put the names of the clean columns we want. 
+```{r}
+week_ratings <- ratings %>% 
+    select(series, ends_with("7day")) %>% 
+    gather(episode, viewers_7day, ends_with("7day"), 
+           na.rm = TRUE)  %>% separate(episode , into = "episode")
+week_ratings
+```
+
+The opposite of separate is unite() function to unite two columns.The usage of unite is like this data %>%
+    unite(new_var, old_var1, old_var2) 
+    
+```{r}
+student_first_last <- c('Nafis_Ahmed','HAsif_ahmed','Midushi_Ghimire')
+GPA <- c(2.7, 3.8, 3.3)
+startdate <- as.Date(c('2019-1-9','2020-9-6','2021-5-15'))
+AID <- c(3500, 6700, 4500)
+
+student<- data.frame(student_first_last, GPA, startdate, AID)
+tidy_student <- student %>% separate(student_first_last, into = c("First Name", "Last Name"))
+Studentunity <- tidy_student %>% unite(Name, "First Name", "Last Name", sep = " ")
+Studentunity
+
+```
+    
+spread() function :
+
+We use the spread() function to spread columns to rows when we see that there are multiple variables in a column.
+```{r}
+ratings_untidy <- read.csv("messy_ratings2.csv")
+tidy_ratings_all <- ratings_untidy %>%
+    gather(episode, viewers, ends_with("day"), na.rm = TRUE) %>% 
+    separate(episode, into = c("episode", "days")) %>%  
+    mutate(episode = parse_number(episode),
+           days = parse_number(days)) 
+
+tidy_ratings_all %>% 
+	# Count viewers by series and days
+    count(series, days, wt = viewers) %>%
+	# Adapt to spread counted values
+spread(key = days, value=n,  sep="_")
+```
+
+## Transform your data
+Recoding based on condition:--  
+
+We can use the case_when() to use it like multiple if else statement and make a new variable. We usually use it inside mutate. 
+```{r}
+studentstatus <- Studentunity %>% mutate(condition = case_when(
+  GPA<3.0 ~ "Below Average",
+  GPA>3.0&GPA<3.5 ~ "GOOD",
+  TRUE ~ "Excellent"
+))
+studentstatus
+```
+
+```{r}
+bakers <- read.csv("baker_results.csv")
+bakers_skill <- bakers %>% 
+  mutate(skill = case_when(
+    star_baker > technical_winner ~ "super_star",
+    star_baker < technical_winner ~ "high_tech",
+    star_baker == 0 & technical_winner == 0 ~ NA_character_,
+    star_baker == technical_winner  ~ "well_rounded"
+  )) %>% 
+  drop_na(skill)
+bakers_skill %>% count(skill)
+```
+
+Factors:
+
+We can turn certain variables into factors.
+```{r}
+# Cast skill as a factor
+bakers <- bakers_skill %>% 
+  mutate(skill = as.factor(skill), series_winner = as.factor(series_winner))
+#Examine levels
+levels(bakers$skill)
+```
+
+
+```{r}
+ggplot(bakers, aes(x=skill, fill= series_winner)) + geom_bar()
+```
+
+We can reverse the  x-axis order by using fct_rev()
+```{r}
+ggplot(bakers, aes(x = fct_rev(skill), fill = series_winner)) +
+  geom_bar()
+```
+We can use the library lubridate to parse and cast a date variable within a mutate(). We can cast any date as a month using month()
+```{r}
+library(lubridate)
+
+baker_dates_cast <- bakers %>% 
+  mutate(last_date_appeared_us = ymd(last_date_us),
+        last_month = month(last_date_us, label=TRUE))
+ggplot(baker_dates_cast,aes(x = last_month)) +
+  geom_bar()
+
+
+```
+
+
+```{r}
+bakerlast <- read.csv("messy_baker_results.csv")
+bakerlast %>% 
+  count(position_reached)
+
+```
+
+Strings:
+
+We can do string wrangling using the stringr package.We can use the stringr package to change strings to upper case and lower case and also we can replace it with some other string which makes the data mor e meaningful.
+```{r}
+library(stringr)
+bakers_2 <- bakerlast %>% 
+  mutate(position_reached = str_to_upper(position_reached),
+         position_reached = str_replace(position_reached, "-", " "),
+         position_reached = str_replace(position_reached, "THIRD PLACE", "RUNNER UP"))
+
+# Count rows
+bakers_2 %>%
+  count(position_reached)
+
+```
+Each of the 8 series had one winner and two runner-ups. 
+We can use the stringr package to detect a specific string in a variable: 
+```{r}
+bakers <- bakerlast %>% 
+    mutate(occupation = str_to_lower(occupation),
+           student = str_detect(occupation, "student"))
+# Find all students and examine occupations
+bakers %>% filter(student == TRUE) %>%
+  select(baker, occupation, student)
+```
+
+
+
+
+
+
+
