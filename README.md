@@ -1,9 +1,9 @@
 **BP DataCamp Chapters**
 
-- [x] Introduction to R (due 2022-01-09 CHECK 2022-01-09)
-- [x] Intermediate R (due 2022-01-11 CHECK 2022-01-11) EXTENSION 2022-01-14
-- [x] Introduction to the Tidyverse (due 2022-01-13 CHECK 2022-01-13) EXTENSION 2022-01-14
-- [x] Introduction to Data Visualization with ggplot2 (due 2022-01-16 CHECKPLUS 2022-01-16)
+-  Introduction to R (due 2022-01-09 CHECK 2022-01-09)
+-  Intermediate R (due 2022-01-11 CHECK 2022-01-11) EXTENSION 2022-01-14
+-  Introduction to the Tidyverse (due 2022-01-13 CHECK 2022-01-13) EXTENSION 2022-01-14
+-  Introduction to Data Visualization with ggplot2 (due 2022-01-16 CHECKPLUS 2022-01-16)
 - [x] Working with Data in the Tidyverse (due 2022-01-18 CHECK 2022-01-18)
 - [x] Categorical Data in the Tidyverse (due 2022-01-20 CHECK 2022-01-20) **Good work with your notes, one thing I would recommend is to avoid displaying the long datasets. For example, I would assign the iris dataset to a variable name so that the long dataset doesn't take up space in the output**
 - [x] Data Manipulation with dplyr (due 2022-01-23 CHECK 2022-01-23)
